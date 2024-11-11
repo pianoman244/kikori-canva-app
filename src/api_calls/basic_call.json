@@ -1,99 +1,128 @@
 {
-    "success": true,
-    "data": {
-        "_id": "66a16fe0a17a5ac6a7936c5d",
-        "docId": "66a16fe0a17a5ac6a7936c5d",
-        "creator_id": "m3XPrfyek3hpAHYwOuDp2C9Bmof1",
-        "title": "Date 3 Morning Message: National Day",
-        "description": "Pose a question based on National Day as an interactive activity to help students focus on the day ahead.",
-        "preparation": "<p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Learning Intentions that can be addressed with this activity:</p><ul style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><li>I can prepare for the day ahead</li><li>I can work together with my classmates on the Morning Message task<br></li></ul><hr><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Write the Morning Message in the form of a letter to your students, before they arrive in the morning.&nbsp; Use the Sample Morning Message wording to prepare your students for the day ahead.&nbsp; Lead the Morning Message as a shared reading that you and your students orally read together.</p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Be sure to include:</p><ul style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><li>An overview of the day's activities.</li><li>Any birthdays, special programs, or highlights of what is upcoming.<br></li><li>An interactive activity that focuses children on the work of the day ahead.</li></ul>",
-        "playing": "<p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><b>Steps:</b></p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Write a question for students based on the national theme of the day:&nbsp;<a href=\"https://nationaldaycalendar.com/international-caps-lock-day-june-28-or-october-22/\" target=\"_blank\" style=\"background-color: inherit; text-decoration: inherit; font-family: inherit; font-weight: inherit; color: rgb(51, 122, 183);\">International Caps Lock Day</a><span>&nbsp;</span>and Small Group Sharing<br></p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><i><b>Sample Morning Message:</b></i></p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Dear Class,</p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Today is International Caps Lock Day!&nbsp;<br></p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Are you ready to let loose and embrace the power of the Caps Lock key? Well, today's your day because it's INTERNATIONAL CAPS LOCK DAY!&nbsp; That's right, you've got full permission to type in all caps and let your words SHINE in uppercase glory!</p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Whether you're shouting, celebrating, or just feeling extra expressive, Caps Lock Day is the perfect excuse to go big with your typing. And hey, no one can judge you today because we're all in on the fun!<br></p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">But why celebrate Caps Lock Day twice a year? Well, it turns out that the world just can't get enough of that caps lock action, so we're doubling up the festivities on June 28th and October 22nd. Talk about spreading the caps lock love!</p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">So go ahead, unleash your inner typographical rebel, and make your messages stand out with all caps.&nbsp; Let's make today one for the caps lock history books! Get ready to type your heart out and join the uppercase party.</p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><b>Small Group Sharing:</b></p><ul style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><li><b><i>Think:&nbsp;</i></b>&nbsp; What is your favorite capital letter to write and why?<br></li><li><b><i>Pair:&nbsp;<span>&nbsp;</span></i></b>Share with a partner.&nbsp; Make sure to find out why!&nbsp; Switch partners and take turns sharing.&nbsp; (Facilitator Tip: Set a timer for 1-3 min for each share)<br></li><li><b><i>Round Robin Share:</i></b>&nbsp; Share with the class (ask their permission first!).&nbsp;<br></li></ul><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">With Love,</p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Your Teacher</p>",
-        "learning": "<p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">A Morning Message is designed to help students become focused for the day. Morning Messages do not need to be processed unless you are intending to help students understand why Morning Messages are important and wonderful.</p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">If you are interested in reflecting with students on the value of the Morning Message, please see sample reflection questions below.</p><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><b>Reflect: (What?)<br></b></p><ul style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><li>What do you like about Morning Messages? What do you not like about Morning Messages?</li><li>How was Morning Message helpful or not helpful today?</li><li>Do you feel different before and after Morning Message?</li></ul><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><b>Connect: (So what?)<br></b></p><ul style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><li>When are times in your life that starting your day off with a positive Morning Message has made a difference for you?</li></ul><p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><b>Grow: (Now what?)<br></b></p><ul style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><li>What would you like to have a Morning Message about in the future?</li></ul>",
-        "variation": "<p style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Morning Message Ideas:</p><ul style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><li>Check in Question</li><li>Let’s Vote!</li><li>Poems</li><li>Jokes and Riddles</li><li>Fill in the Blank</li><li>Venn Diagram</li><li>Graph It</li><li>SEL Check In</li><li>Collaborative Picture</li><li>Morning message Response in Journals</li><li>Others? Do you have a favorite Morning Message Idea? Share it with the Kikori team at<span>&nbsp;</span><a href=\"mailto:info@kikoriapp.com\" style=\"background-color: inherit; text-decoration: inherit; font-family: inherit; font-weight: inherit; color: rgb(51, 122, 183);\">info@kikoriapp.com</a>, and we will help you turn it into an activity!</li></ul>",
-        "instruction_source": "<p><span style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;\">The idea for this Morning Announcement is from the Kikori Team. Learn more about Morning Meetings and Advisory Meetings in our<span>&nbsp;</span></span><a href=\"https://www.kikoriapp.com/post/the-benefits-of-a-morning-meeting-plan-in-your-classroom\" target=\"_blank\" style=\"background-color: rgb(255, 255, 255); text-decoration: inherit; font-family: sans-serif; font-weight: 400; color: rgb(51, 122, 183); font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal;\">Kikori Blog</a><span style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;\">! </span></p><p><span style=\"color: rgb(0, 0, 0); font-family: sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;\"><br></span></p>, Photo  by Towfiqu barbhuiya on Unsplash",
+    "activityData": {
+        "_id": "1rOG8tL53URvtSkRsYKi",
+        "docId": "1rOG8tL53URvtSkRsYKi",
+        "creator_id": "5e5dc870f7dec842fec1fc33",
+        "title": "Appreciation Mingle Greeting",
+        "description": "A communication and connection activity that allows participants to exchange appreciations with each other.",
+        "preparation": "<p>This activity can be used as part of a Morning Meeting. A space where students can safely move is important.&nbsp; If you are indoors, you may request that students can walk fast as their fastest speed.</p><p> Greetings should begin with students in a circle where all are sitting and can see each other.  While students are standing in a circle, you should provide students with the directions for the activity.</p><p>Morning Meeting always begins with Greeting. In Greeting, each child is welcomed by name and practices welcoming others.&nbsp; The purpose of the Morning Meeting Greeting is to let our students know that we see them, we hear them, and that they belong to something important.                            </p><p>The goals of the Greeting component are:</p><ol><li>To set a positive tone for the day</li><li>To provide a sense of recognition and belonging</li><li>To help children learn and use everyone’s name</li><li>To let children practice hospitality                        </li></ol><p>In Greeting, children not only learn and practice the basic elements of greeting each other in a friendly way, they also gain experience in reaching across gender, clique, and friendship lines.</p>",
+        "playing": "<p><b>Steps:</b></p><ol><li>Say: \" We are going to take a moment to show appreciation or thank our friends/classmates for things they do.\" </li><li>Model this with one or two students. An example could be, \"Sadie, thank you for being a great clean up monitor and helping to keep our classroom clean for everyone\" or \" Ellis, I appreciate how you always are willing to share during center time.\" </li><li>Ask two students to model this to each other,&nbsp; ensuring they use their friend's name and the sentence starter&nbsp; of \" (Name), Thank you for&nbsp; ...\" or&nbsp; \"(Name) I appreciate how you/that you...\"</li><li>Ask the whole group to think about and share out some appreciations they have for others in their group.&nbsp;</li><li>Say: \"When I say go, walk to someone in your group/in the room and share a thank you/appreciation.&nbsp; Keep going until I say stop.\"&nbsp;</li><li>Say: \"When I say stop, share a thank you to the person closest to your body.\"</li><li>This continues until everyone has appreciated everyone else in the group or until the allotted time is up.</li></ol>",
+        "learning": "<p>Appreciation Mingle is designed for students to connect at the beginning of a class, mid-day, or end of day reflection. If you are interested in reflecting with students on the value of an Appreciation Mingle, please see sample reflection questions below.</p><p><b>Reflect: (What?)</b><br></p><ul><li>What did you like about Appreciation Greetings?&nbsp;</li><li>How did it feel to give appreciation or thank someone in your class/group?</li><li>How did it feel to receive appreciation or have someone thank you?&nbsp;</li></ul><b>Connect: (So what?)</b><br><ul><li>When are times you can share an appreciation greeting?&nbsp;</li><li>Who are some other people in our lives we can give an appreciation greeting to? &nbsp;(ex. family, teachers, weekend enrichment providers, babysitters)</li></ul><b>Grow: (Now what?)</b><br><ul><li>How can we use appreciation greetings in our everyday life? (ex. community workers, grocery store workers, school community members, security guards)</li></ul><p></p>",
+        "variation": "<p>If your group is practicing social distancing, you can add in the rule that students still need to complete the actions of the handshake, yet be a certain distance apart from each other.  You can ask students afterwards what elements they did that made this a greeting, EVEN THOUGH they weren't able to touch!</p>",
+        "instruction_source": "<p>Play for Peace Activity Booklet<br></p>",
         "video": "",
-        "keywords_description": "kikori team, impulse control, self discipline, self motivation, goal setting, organizational skills, self management, social engagement, relationship building, initiative & self direction, productivity & accountability, communication, instructional, opener, whole group, quality education, messages and announcements",
+        "last_updated_by": "5e549384178860fc5f7f5b25",
+        "printable_pdf": "https://storage.googleapis.com/kikori-62df6.appspot.com/PrintablePDFs/1rOG8tL53URvtSkRsYKi/Appreciation%20Mingle%20Greeting.pdf?GoogleAccessId=firebase-adminsdk-smq1x%40kikori-62df6.iam.gserviceaccount.com&Expires=16447017600&Signature=CT6yLc8aXcB7xi5VnFa5D51AsLKpcCJeUOqSRobOveN69n0sqj4iaGn2tKmzsAiVjpGKQtkXiNJHF0ZNJ6Ell284bZIl6Sh5M00CHLVgh7wHCslVq%2BWyT9E20Qj6SgDPDddmIxVShEAEjlCS29tYQkIlfk2Rwm1gpuY6L84F3b%2F10tM%2BaqBg3kRJf3ZKQAOPIzlKlJqpaTQHdwl%2B0dyVThubv%2BecG%2BM4de%2BviAfm%2BQgF8XrhaW5IbxE3It1t69PaX8NJ%2BjKm8BPuHTzTRcF7vZjFzzp%2Bh2WcXDYCROvz8Cp5k3XdMqQS3RZj7YBx5DjCWNwfnBCr1lJydv0KKG48Kw%3D%3D",
+        "keywords_description": "marilyn levin, self confidence, self discipline, appreciating diversity, respect for others, communication, social engagement, relationship building, relationship skills, collaboration, initiative & self direction, social & cross cultural skills, greeting, opener, physical distancing, mingling pairs, whole group, outdoor adventure ed, physical education, theater, good health and well-being, quality education, peace and justice strong institutions, ice melter",
         "variation_access": "public",
-        "activity_type": "original",
-        "variation_of": null,
-        "time": 15,
-        "energy": 1,
+        "activity_type": "variation",
+        "variation_of": "c1UPjfBhSbUwBHyn7shD",
+        "time": 5,
+        "energy": 2,
         "age_group": [
-            1,
-            2
-        ],
-        "category": 10,
-        "cover_image_index": 0,
-        "creation_time": 1721855968853,
-        "last_edit": 1721856111882,
-        "status": 2,
-        "attributes": [
-            3,
-            7,
             1
         ],
-        "subjects": [],
+        "category": 1,
+        "language": 38,
+        "cover_image_index": 0,
+        "creation_time": 1669273471498,
+        "last_edit": 1730571042288,
+        "status": 2,
+        "age_group_index": 1,
+        "attributes": [
+            3,
+            26,
+            1,
+            19
+        ],
+        "subjects": [
+            12,
+            11,
+            9
+        ],
         "material": [],
         "group_structure": [
+            4,
             5
         ],
         "sustainable_development": [
-            4
+            3,
+            4,
+            16
         ],
         "images": [
-            "https://images.unsplash.com/photo-1633526543814-9718c8922b7a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wzMjE0NjV8MHwxfHNlYXJjaHwzfHxjYWxlbmRhcnxlbnwwfHx8fDE3MjAwMjEyNDB8MA&ixlib=rb-4.0.3&q=80&w=1080"
+            "https://images.unsplash.com/photo-1621452773781-0f992fd1f5cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwzMjE0NjV8MHwxfHNlYXJjaHw3fHxraWRzJTIwaHVnZ2luZ3xlbnwwfHx8fDE2NjUzNjExOTY&ixlib=rb-1.2.1&q=80&w=1080"
         ],
         "keywords": [
-            "kikori team",
-            "impulse control",
+            "marilyn levin",
+            "self confidence",
             "self discipline",
-            "self motivation",
-            "goal setting",
-            "organizational skills",
-            "self management",
+            "appreciating diversity",
+            "respect for others",
+            "communication",
             "social engagement",
             "relationship building",
+            "relationship skills",
+            "collaboration",
             "initiative & self direction",
-            "productivity & accountability",
-            "communication",
-            "instructional",
+            "social & cross cultural skills",
+            "greeting",
             "opener",
+            "physical distancing",
+            "mingling pairs",
             "whole group",
+            "outdoor adventure ed",
+            "physical education",
+            "theater",
+            "good health and well-being",
             "quality education",
-            "messages and announcements"
+            "peace and justice strong institutions",
+            "ice melter"
         ],
         "custom_keywords": [],
         "century_skills": {
-            "Life and Career Skills": [
-                2,
-                4
-            ]
-        },
-        "sel_standards": {
-            "Self-management": [
-                1,
+            "Learning and Innovation Skills": [
                 3,
-                4,
-                5,
-                6
+                4
             ],
-            "Relationship skills": [
+            "Life and Career Skills": [
                 2,
                 3
             ]
         },
+        "sel_standards": {
+            "Self-awareness": [
+                4
+            ],
+            "Self-management": [
+                3
+            ],
+            "Social awareness": [
+                3,
+                4
+            ],
+            "Relationship skills": [
+                1,
+                2,
+                3
+            ]
+        },
+        "pdf": null,
         "no_prop": true,
         "paidContent": false,
-        "premiumContent": false,
-        "pdf": null,
-        "attachments": [],
-        "slides": {},
         "__v": 0,
-        "printable_pdf": "https://storage.googleapis.com/kikori-3fe27.appspot.com/PrintablePDFs/66a16fe0a17a5ac6a7936c5d/Date%203%20Morning%20Message%3A%20National%20Day.pdf?GoogleAccessId=firebase-adminsdk-2486t%40kikori-3fe27.iam.gserviceaccount.com&Expires=16447017600&Signature=fvQ92kzC9Zk4mtrSx4gwJcb4sa1B5QIc0hycr8xG6bSuXvQpJbqk%2Bek%2BzAmgwjcLkNXsRqlKEgj8K2iHGHrARWf9G6E9NWUhQoSZbDMDxCu9Ki3qbd%2FvLTY3kAehqk0xAF2x61DfmvbMT0gSEgERH7IGC0jsNarRL43NPI0hZrqzZva5QeoD1IwVQB1HdMT9KvUhnu76F7HU9fPceLYbtMGhtXrCuT%2Fp0OKB5Bf7e%2FEhIPlsTQH86INLb22G28m8LggfCpxGOGXvq0uE7GyCb9Cso7Ad9I8Y1xUJlYiAj0ok4ZD5HeZcf2APMnDFvkxayBBGFgamNhQjMe18bPyM9g%3D%3D",
-        "printable_pdf_thumbnail": "https://storage.googleapis.com/kikori-3fe27.appspot.com/PdfThumbnails/1721856121080.jpg?GoogleAccessId=firebase-adminsdk-2486t%40kikori-3fe27.iam.gserviceaccount.com&Expires=16447017600&Signature=w2ozHHbg0FBQIeVpsxqoX1Uoi4dFVPVCxD4vqausCtuWnUY9bebzXPr6y7PdZZzyG4QKFSflNRzFJx8oPxdnDI9BGl9duj0iqKnEau%2FDS%2FX99tQYMphbKnCpQWfyrU6gO%2FFrs54R9wOykP3j15wohR9jbWMA7h4sJIVDsa6Zj03tA2JcYy28I3S0HTO%2BEyi5x%2Fpn%2F2Dwq6XiyrmXldz37b9%2BGpf%2BIG%2BTck0i5ikUgUhimmPgdknDbNwolQqwTTzkOIBRoQJ5W14Rd6PkXrmqZTcZBgPtaDacJQCpKO8YrNQchdOBtZXCsBhKTkX5fF3%2FwKntqGrT3zE29op4n0bjPA%3D%3D",
-        "age_group_count": 2,
-        "age_group_index": 1.2,
-        "language": 38,
-        "last_updated_by": "h1GezVbUwTPMttIyOpLqQYks1432"
+        "age_group_count": 1,
+        "premiumContent": false,
+        "attachments": [],
+        "slides": {
+            "pdf": {
+                "name": "(PK-K) Appreciation Mingle Greeting.pdf",
+                "source": "https://firebasestorage.googleapis.com/v0/b/kikori-62df6.appspot.com/o/activity_pdf%2F5e5dc870f7dec842fec1fc33%2F(PK-K)%20Appreciation%20Mingle%20Greeting.pdf?alt=media&token=c4b817f8-c5a9-44e7-9919-dc4d850036bc",
+                "thumbnail": "https://storage.googleapis.com/kikori-62df6.appspot.com/PdfThumbnails/2024-11-02%2014%3A10%3A33.025.jpg?GoogleAccessId=firebase-adminsdk-smq1x%40kikori-62df6.iam.gserviceaccount.com&Expires=16447017600&Signature=fjf5XjhnCQgkcy9ExiX32pgyUWCQ649YskVe7jh6Rkbm9v57K2zffGuaY51pW6Vcubg2Z8%2F82UuetvQ61%2BMqmktoNGfOgMHLF6D%2F0JcLbFh65ZqIe486VX0GV8R5gCy2YvL4KBn704UOuPAGtZdgprrjEZZ73JoP7nL63Dq3VA00APFVPI03N907C4eKGEqZ6MuF38E54NHiaHUFPgcnGe%2FZD1QNXgxtHz6dl9YQCLH%2FQtJBKvKO9ukf5sPfkPGOhdYwa2iTjqPk%2Fzi4J6P8ujKOfrDkAlFqX2yPYK1HKprXdN01%2BuDxc5r3a7S3u6EPkJ0keMASdqXSUrJHcWP17w%3D%3D"
+            },
+            "slideUrl": "https://www.canva.com/design/DAGNgF0H6RY/GcY4gVvPWRnzx-ii-7x-iA/view?utm_content=DAGNgF0H6RY&utm_campaign=share_your_design&utm_medium=link&utm_source=shareyourdesignpanel",
+            "editableSlideUrl": "https://www.canva.com/design/DAGNgF0H6RY/YpCxdD7L80DM85gTkYiTBw/view?utm_content=DAGNgF0H6RY&utm_campaign=designshare&utm_medium=link&utm_source=publishsharelink&mode=preview"
+        },
+        "printable_pdf_thumbnail": "https://storage.googleapis.com/kikori-62df6.appspot.com/PdfThumbnails/1730571046725.jpg?GoogleAccessId=firebase-adminsdk-smq1x%40kikori-62df6.iam.gserviceaccount.com&Expires=16447017600&Signature=LHGAPJ9jUXjru%2FUV0fhdHcrc3hn2AcX24ualmbC4MRueX2ZZ6aZc4Ztaul1%2F7TUXDUvXiCHQaO6kBQBvV9ZPax1IN2hMXLDwmz0kiGsdphxMWSk3F4%2BPDV%2BHmorCOl5Sfmq96LBHJsLmMoE43dlBi66u2lhwH1143NXAoc51AnUGtpKB2D6EnU4VoCPQrgLC13B5zp8IOIugeQLu8jkBlZyyTRvE4Dq3LofTug6MIXxnw0a6syK%2F5uqvMLJkWWMvImYSHtP305Q81PLiHRG%2BVEOW6HVptglIy8czHpU4CBz4wL%2FCJ0ieHR%2F4SiZxz0H%2FOEDaqqR15cPAS2p1FEsACg%3D%3D"
     }
 }
