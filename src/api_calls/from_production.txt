@@ -1,0 +1,16 @@
+Atlas atlas-dd59ti-shard-0 [primary] kikori-test> db.activities.insertMany(activities);
+{
+  acknowledged: true,
+  insertedIds: {
+    '0': '00Rpgdx6cVSB1673gOE7',
+    '1': '00booFGmifWFGpOVCK5v',
+    '2': '010nuVoXq2oJtcotxZfB',
+    '3': '01D7XhzoISqEPRbzThBE',
+    '4': '02ztViME2FfZHKXJgg6z',
+    '5': '03AAMfb6TBdpEu7C5KWb',
+    '6': '08RJjEYOITBc73I4VHVt',
+    '7': '0AuYR8qUkmKR93rLe38F',
+    '8': '0E6anpn8spF9znbIHKdd',
+    '9': '0GhdrxZKrBj45CsGP7J2'
+  }
+}

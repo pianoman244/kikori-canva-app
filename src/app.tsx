@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Button, Rows, Text, FormField, TextInput, SegmentedControl, Alert, Badge, ProgressBar
+  Button, Rows, Title, Text, FormField, TextInput, CheckboxGroup, SegmentedControl, Alert, Badge, ProgressBar, LoadingIndicator
 } from "@canva/app-ui-kit";
 import { FormattedMessage, useIntl } from "react-intl";
 import * as styles from "styles/components.css";
@@ -192,25 +192,29 @@ export const App = () => {
   const [templateLink, setTemplateLink] = useState(""); // brand template link text field
 
   // buttons
-  const [verifyActivityIdButton, setVerifyActivityIdButton] = useState({ variant: "primary", text: "Verify Activity ID", disabled: false })
+  const [verifyActivityIdButton, setVerifyActivityIdButton] = useState({ variant: "primary", text: "Fetch Activity by ID", disabled: false })
   const [generateSlidesButton, setGenerateSlidesButton] = useState({ disabled: true, message: "Generate slides" }); // for enabling/disabling generate slides button
   const [createVariationButton, setCreateVariationButton] = useState({ disabled: false, message: "Create variation" }); // create variation button state
-  const [updateSlidesButton, setUpdateSlidesButton] = useState({disabled: true, message: "Update slide links"}); // update slide links button state
+  const [updateSlidesButton, setUpdateSlidesButton] = useState({ disabled: true, message: "Update slide links" }); // update slide links button state
 
   // other computed states
-  const [selectedActivity, setSelectedActivity] = useState({ docId: "", age_group: [], title: "" }); // set when activity is verified
+  type Activity = { docId: string; age_group: number[]; title: string; };
+  const [selectedActivity, setSelectedActivity] = useState<Activity>({ docId: "", age_group: [], title: "" }); // set when activity is verified
   const [slideGenerationInProgress, setSlideGenerationInProgress] = useState(false); // used to render progress bar
   const [slideGenerationProgressValue, setSlideGenerationProgressValue] = useState(0); // progress of progress bar
+
+  const [isCreatingVariation, setIsCreatingVariation] = useState(false); // to disable createVariation button/alert updates
 
   // alerts
   const [verifyAlert, setVerifyAlert] = useState({ visible: false, message: "", tone: "warn" }); // verifying ID alert
   const [generatingAlert, setGeneratingAlert] = useState({ visible: false, message: "Generating...", tone: "neutral" }); // generating slides alert
   // persistent informational alert below the slides button explaining how to use it
-  const [slidesButtonInfoAlert, setSlidesButtonInfoAlert] = useState({ message: "Select an activity to generate slides based on the teacher instructions." });
+  const [slidesButtonInfoAlert, setSlidesButtonInfoAlert] = useState({ message: "Select an activity to generate slides." });
   const [collaborationLinkAlert, setCollaborationLinkAlert] = useState({ visible: false, message: "", tone: "warn" }); // collaboration link validatoin
   const [templateLinkAlert, setTemplateLinkAlert] = useState({ visible: false, message: "", tone: "warn" }); // brand template link validation
-  const [createVariationInfoAlert, setCreateVariationInfoAlert] = useState({visible: true, message: "Select an activity to create a variation."}); // info for create variation button
-  const [updateSlidesInfoAlert, setUpdateSlidesInfoAlert] = useState({visible: true, message: "Select an activity to update its slide links."}); // info for update slides button
+  const [createVariationInfoAlert, setCreateVariationInfoAlert] = useState({ visible: true, message: "Select an activity to create a variation.", tone: "info" }); // info for create variation button
+  const [createVariationResultAlert, setCreateVariationResultAlert] = useState({ visible: false, message: "", tone: "" }); // error alert for if create variation fails
+  const [updateSlidesInfoAlert, setUpdateSlidesInfoAlert] = useState({ visible: true, message: "Select an activity to update its slide links." }); // info for update slides button
 
   /* handlers for app element interaction */
 
@@ -309,16 +313,45 @@ export const App = () => {
 
       setSlideGenerationProgressValue(100);
       setGeneratingAlert({ visible: true, message: "Slides generated!", tone: "positive" });
-      
+
     } catch (error) {
       console.error("Error generating slides:", error);
-      setGeneratingAlert({ visible: true, message: "Error generating slides. Please try again.", tone: "negative" });
+      setGeneratingAlert({ visible: true, message: "Error generating slides. Please try again.", tone: "warn" });
     } finally {
       setSlideGenerationInProgress(false);
       setSlideGenerationProgressValue(0);
     }
   }
 
+  async function handleCreateVariationButton() {
+    setIsCreatingVariation(true); // disable normal button and alert updates
+    setCreateVariationInfoAlert({ visible: false, message: "", tone: "neutral" });
+    setCreateVariationButton({ disabled: true, message: "Creating variation..." });
+
+    const response = await fetch(API_URL + '/createVariation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        "activityId": selectedActivity.docId,
+        "ageGroup": selectedAgeGroupIndex,
+        "collaborationLink": collaborationLink,
+        "templateLink": templateLink
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      setCreateVariationResultAlert({ visible: true, tone: "warn", message: `Error creating variation: ${errorData?.error ?? "see logs"}` });
+      console.log("Error creating variation:", errorData);
+    } else {
+      setCreateVariationResultAlert({ visible: true, tone: "positive", message: "Variation created successfully!" });
+    }
+
+    setIsCreatingVariation(false); // re-enable button and alert updates
+    // will automatically update the button and alert once because this is a dependency in the useEffect
+  }
 
   // for exploring the openDesign function in Canva SDK
   async function handleOpenDesign(draft, helpers) {
@@ -416,27 +449,29 @@ export const App = () => {
 
   // Effect to enable "Create Activity Variation" button and modify alert based on all conditions
   useEffect(() => {
+    if (isCreatingVariation) return; // do nothing if variation is being created currently
+
     const multipleGradesInSelectedActivity = selectedActivity.age_group.length > 1;
     const linksValid = validateLink(collaborationLink, canvaCollabPattern) && validateLink(templateLink, canvaTemplatePattern);
 
     if (selectedActivity.docId == "") {
-      setCreateVariationInfoAlert({visible: true, message: "Select an activity to create a variation."});
+      setCreateVariationInfoAlert({ visible: true, message: "Select an activity to create a variation.", tone: "info" });
       setCreateVariationButton({ disabled: true, message: "Create variation" });
     } else if (!multipleGradesInSelectedActivity) {
-      setCreateVariationInfoAlert({visible: true, message: "The selected activity only has one age group. Find the parent activity to create a variation."});
+      setCreateVariationInfoAlert({ visible: true, message: "The selected activity only has one age group. Find the parent activity to create a variation.", tone: "info" });
       setCreateVariationButton({ disabled: true, message: "Create variation" });
     } else if (selectedAgeGroupIndex == -1) {
-      setCreateVariationInfoAlert({visible: true, message: "Select a grade level to create a variation."});
-      setCreateVariationButton({ disabled: true, message: "Create variation for selected activity" }); 
+      setCreateVariationInfoAlert({ visible: true, message: "Select a grade level to create a variation.", tone: "info" });
+      setCreateVariationButton({ disabled: true, message: "Create variation for selected activity" });
     } else if (!linksValid) {
-      setCreateVariationInfoAlert({visible: true, message: "Enter valid collaboration and brand template links to create a variation."});
+      setCreateVariationInfoAlert({ visible: true, message: "Enter valid collaboration and brand template links to create a variation.", tone: "info" });
       setCreateVariationButton({ disabled: true, message: `Create variation for ${gradeLevels[selectedAgeGroupIndex]}` });
     } else {
-      setCreateVariationInfoAlert({visible: false, message: ""});
+      setCreateVariationInfoAlert({ visible: false, message: "", tone: "info" });
       setCreateVariationButton({ disabled: false, message: `Create variation for ${gradeLevels[selectedAgeGroupIndex]}` });
     }
 
-  }, [selectedAgeGroupIndex, selectedActivity, collaborationLink, templateLink]);
+  }, [selectedAgeGroupIndex, selectedActivity, collaborationLink, templateLink, isCreatingVariation]);
 
   // Effect to enable "Update Slides" button and modify alert
   useEffect(() => {
@@ -444,16 +479,16 @@ export const App = () => {
       setUpdateSlidesButton({ disabled: true, message: "Update slide links" });
       setUpdateSlidesInfoAlert({ visible: true, message: "Select an activity to update its slide links to match this slide deck." });
     } else {
-      setUpdateSlidesButton({ disabled: false, message: "Update slide links for selected activity"});
+      setUpdateSlidesButton({ disabled: false, message: "Update slide links for selected activity" });
       setUpdateSlidesInfoAlert({ visible: false, message: "" });
     }
-  })
+  }, [selectedActivity])
 
   // Set generating slides button and persistent informational alert below it
   useEffect(() => {
     if (selectedActivity.docId == "") {
       setGenerateSlidesButton({ disabled: true, message: "Generate slides" });
-      setSlidesButtonInfoAlert({ message: "Select an activity to generate slides based on the teacher instructions." });
+      setSlidesButtonInfoAlert({ message: "Select an activity to generate slides." });
     } else if (selectedActivity.docId != "" && selectedAgeGroupIndex == -1) {
       setGenerateSlidesButton({ disabled: true, message: "Generate slides for selected activity" });
       setSlidesButtonInfoAlert({ message: "Select a grade level to generate slides for the selected activity." });
@@ -466,17 +501,35 @@ export const App = () => {
   return (
     <div className={styles.scrollContainer}>
       <Rows spacing="2u">
-        <Text>
-          <FormattedMessage
-            defaultMessage="
-              Kikori slides generator! 
-            "
-            description="hiiiii"
-            values={{
-              code: (chunks) => <code>{chunks}</code>,
-            }}
-          />
+        <Title
+          alignment="start"
+          capitalization="default"
+          size="large"
+        >
+          Kikori Canva Helper
+        </Title>
+        <Text size="large">
+          In this app, you can:
         </Text>
+        <CheckboxGroup defaultValue={["generate", "create"]}
+          options={[
+            {
+              label: 'Generate slides for the activity for a new grade level based on the lesson plan embedded in the activity',
+              value: 'generate'
+            },
+            {
+              label: 'Update the slide information for the selected activity (live Canva links and static PDF copy) in the Kikori app',
+              value: 'update',
+              description: "Not implemented yet!",
+              disabled: true
+            },
+            {
+              label: 'Create a variation of the activity in the Kikori app for the selected grade level using this slide deck',
+              value: 'create',
+            }
+          ]}
+        />
+        <Text variant="bold" tone="tertiary">Copy an activity ID from the Kikori app and enter it into the text box to get started!</Text>
 
         <FormField
           control={(props) => <TextInput
@@ -486,8 +539,8 @@ export const App = () => {
             defaultValue={DEFAULT_ID}
             onChange={setActivityIdInput} {...props}
           />}
-          label="Select an activity"
-          description="NOTE TO SELF: remove default value"
+          label="Select Activity (by ID)"
+          description="This will fetch the selected activity from the Kikori database so Canva can interact with it."
         />
 
         <>
@@ -505,7 +558,7 @@ export const App = () => {
           )}
         </>
 
-        <Button variant={verifyActivityIdButton.variant} disabled={verifyActivityIdButton.disabled} onClick={handleVerifyActivityID} stretch>
+        <Button variant={verifyActivityIdButton.variant} disabled={verifyActivityIdButton.disabled || activityIdInput.length == 0} onClick={handleVerifyActivityID} stretch>
           {verifyActivityIdButton.text}
         </Button>
 
@@ -520,14 +573,14 @@ export const App = () => {
           )}
         </>
 
-        <Text
-          alignment="start"
-          capitalization="default"
-          size="medium"
-          variant="regular"
-        >
-          Generate new slides automatically for the selected grade level using the lesson plan!
+        <Text alignment="center">
+          * * * * * * *
         </Text>
+
+        <Text>Select a grade level to generate an age-appropriate slide deck for the activity based on the lesson plan!</Text>
+        <Text>Currently, this will always generate slides for Play, Reflect, Connect, AND Grow. More options will be added eventually.</Text>
+        <Text size="small">The slide deck is generated using ChatGPT. Review all slides carefully.</Text>
+        
         <SegmentedControl
           options={gradeLevelSelectorOptions}
           value={selectedAgeGroupIndex}
@@ -568,20 +621,19 @@ export const App = () => {
           variant="regular"
         >
           Update the PDF copy of the slide deck in the Kikori app!
-          This button only modifies the PDF links;
-          template links are live and update automatically by default.
+          This button updates all the slide links in the selected activity to match this slide deck.
         </Text>
 
-        <Button variant="secondary" disabled={updateSlidesButton.disabled} onClick={handleNothingClick} stretch>
-          {updateSlidesButton.message}
+        <Button variant="secondary" disabled={/*updateSlidesButton.disabled*/ true} onClick={handleNothingClick} stretch>
+          {/*updateSlidesButton.message*/ "Update slides (not implemented)"}
         </Button>
 
         <>
-        { updateSlidesInfoAlert.visible && (
-          <Alert tone="info">
-            {updateSlidesInfoAlert.message}
-          </Alert>
-        )}
+          {updateSlidesInfoAlert.visible && (
+            <Alert tone="info">
+              {updateSlidesInfoAlert.message}
+            </Alert>
+          )}
         </>
 
         <Text
@@ -591,7 +643,11 @@ export const App = () => {
           variant="regular"
         >
           Create a new activity variation for the selected grade level using this slide deck!
-          All activity fields other than the slides are the same as in the original activity.
+          The variation will be created using the same process as the Kikori app.
+        </Text>
+        <Text size="small">
+          Various checks will be performed before creating a variation. 
+          This app won't let you accidentally corrupt the database.
         </Text>
 
         <SegmentedControl
@@ -637,18 +693,28 @@ export const App = () => {
           </Alert>
         )}
 
-        <Button variant="secondary" onClick={handleNothingClick} disabled={createVariationButton.disabled} stretch>
-          {createVariationButton.message}
-        </Button>
-
         <>
-        {createVariationInfoAlert.visible &&
-          (<Alert tone="info">
-          {createVariationInfoAlert.message}
-        </Alert>)
+          {createVariationInfoAlert.visible &&
+            (<Alert tone="info">
+              {createVariationInfoAlert.message}
+            </Alert>)
+          }
+        </>
+
+        <> {isCreatingVariation && (
+          <LoadingIndicator size="medium" />
+        )} </>
+
+        <> {createVariationResultAlert.visible &&
+          (<Alert tone={createVariationResultAlert.tone} onDismiss={() => { setCreateVariationResultAlert((p) => ({ ...p, visible: false })) }}>
+            {createVariationResultAlert.message}
+          </Alert>)
         }
         </>
-        
+
+        <Button variant="secondary" onClick={handleCreateVariationButton} disabled={createVariationButton.disabled} stretch>
+          {createVariationButton.message}
+        </Button>
 
       </Rows>
     </div>
