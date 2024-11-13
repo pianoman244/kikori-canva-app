@@ -477,7 +477,7 @@ export const App = () => {
   useEffect(() => {
     if (selectedActivity.docId == "") {
       setUpdateSlidesButton({ disabled: true, message: "Update slide links" });
-      setUpdateSlidesInfoAlert({ visible: true, message: "Select an activity to update its slide links to match this slide deck." });
+      setUpdateSlidesInfoAlert({ visible: true, message: "Select an activity to update its slide links." });
     } else {
       setUpdateSlidesButton({ disabled: false, message: "Update slide links for selected activity" });
       setUpdateSlidesInfoAlert({ visible: false, message: "" });
@@ -486,17 +486,22 @@ export const App = () => {
 
   // Set generating slides button and persistent informational alert below it
   useEffect(() => {
-    if (selectedActivity.docId == "") {
-      setGenerateSlidesButton({ disabled: true, message: "Generate slides" });
-      setSlidesButtonInfoAlert({ message: "Select an activity to generate slides." });
-    } else if (selectedActivity.docId != "" && selectedAgeGroupIndex == -1) {
-      setGenerateSlidesButton({ disabled: true, message: "Generate slides for selected activity" });
-      setSlidesButtonInfoAlert({ message: "Select a grade level to generate slides for the selected activity." });
-    } else if (selectedActivity.docId != "" && selectedAgeGroupIndex != -1) {
-      setGenerateSlidesButton({ disabled: false, message: `Generate slides for ${gradeLevels[selectedAgeGroupIndex]}` });
+    if (!slideGenerationInProgress) {
+      if (selectedActivity.docId == "") {
+        setGenerateSlidesButton({ disabled: true, message: "Generate slides" });
+        setSlidesButtonInfoAlert({ message: "Select an activity to generate slides." });
+      } else if (selectedActivity.docId != "" && selectedAgeGroupIndex == -1) {
+        setGenerateSlidesButton({ disabled: true, message: "Generate slides for selected activity" });
+        setSlidesButtonInfoAlert({ message: "Select a grade level to generate slides for the selected activity." });
+      } else if (selectedActivity.docId != "" && selectedAgeGroupIndex != -1) {
+        setGenerateSlidesButton({ disabled: false, message: `Generate slides for ${gradeLevels[selectedAgeGroupIndex]}` });
+        setSlidesButtonInfoAlert({ message: "If you interact with Canva while slides are generating, they may generate out of order." });
+      }
+    } else {
+      setGenerateSlidesButton({ disabled: true, message: "Generating slides..." });
       setSlidesButtonInfoAlert({ message: "If you interact with Canva while slides are generating, they may generate out of order." });
     }
-  }, [selectedActivity, selectedAgeGroupIndex])
+  }, [selectedActivity, selectedAgeGroupIndex, slideGenerationInProgress])
 
   return (
     <div className={styles.scrollContainer}>
@@ -526,6 +531,7 @@ export const App = () => {
             {
               label: 'Create a variation of the activity in the Kikori app for the selected grade level using this slide deck',
               value: 'create',
+              description: "Note: the PDF copy of the slides must be uploaded manually at the moment."
             }
           ]}
         />
@@ -580,12 +586,13 @@ export const App = () => {
         <Text>Select a grade level to generate an age-appropriate slide deck for the activity based on the lesson plan!</Text>
         <Text>Currently, this will always generate slides for Play, Reflect, Connect, AND Grow. More options will be added eventually.</Text>
         <Text size="small">The slide deck is generated using ChatGPT. Review all slides carefully.</Text>
-        
+
         <SegmentedControl
           options={gradeLevelSelectorOptions}
           value={selectedAgeGroupIndex}
           onChange={setSelectedAgeGroupIndex}
         />
+
         <Button variant="primary" disabled={generateSlidesButton.disabled} onClick={handleGenerateSlidesButton} stretch>
           {generateSlidesButton.message}
         </Button>
@@ -614,47 +621,12 @@ export const App = () => {
           {slidesButtonInfoAlert.message}
         </Alert>
 
-        <Text
-          alignment="start"
-          capitalization="default"
-          size="medium"
-          variant="regular"
-        >
-          Update the PDF copy of the slide deck in the Kikori app!
-          This button updates all the slide links in the selected activity to match this slide deck.
-        </Text>
-
-        <Button variant="secondary" disabled={/*updateSlidesButton.disabled*/ true} onClick={handleNothingClick} stretch>
-          {/*updateSlidesButton.message*/ "Update slides (not implemented)"}
-        </Button>
-
-        <>
-          {updateSlidesInfoAlert.visible && (
-            <Alert tone="info">
-              {updateSlidesInfoAlert.message}
-            </Alert>
-          )}
-        </>
-
-        <Text
-          alignment="start"
-          capitalization="default"
-          size="medium"
-          variant="regular"
-        >
-          Create a new activity variation for the selected grade level using this slide deck!
-          The variation will be created using the same process as the Kikori app.
-        </Text>
+        <Text>Enter the collaboration and brand template links to update the slide links in the activity or create a new variation of it.</Text>
         <Text size="small">
-          Various checks will be performed before creating a variation. 
+          Various checks will be performed before creating a variation or updating an activity.
           This app won't let you accidentally corrupt the database.
         </Text>
-
-        <SegmentedControl
-          options={gradeLevelSelectorOptions}
-          value={selectedAgeGroupIndex}
-          onChange={setSelectedAgeGroupIndex}
-        />
+        <Text tone="critical">Note: automatic PDF uploading is not configured yet. You must manually upload the PDF copy of the slides.</Text>
 
         <FormField
           control={(props) => <TextInput
@@ -665,7 +637,6 @@ export const App = () => {
           />}
           /*description="Input the ID of an activity in the Kikori app"*/
           label="Collaboration link"
-
         />
 
         {/* Collaboration Link Alert */}
@@ -693,6 +664,44 @@ export const App = () => {
           </Alert>
         )}
 
+        <Text
+          alignment="start"
+          capitalization="default"
+          size="medium"
+          variant="regular"
+        >
+          Click this button to update the selected activity! The new collaboration and brand template links will be entered into the activity in the database.
+        </Text>
+
+        <Text tone="critical" size="small">Don't forget to upload the slide deck PDF manually!</Text>
+        <Button variant="secondary" disabled={/*updateSlidesButton.disabled*/ true} onClick={handleNothingClick} stretch>
+          {/*updateSlidesButton.message*/ "Update slides (not implemented)"}
+        </Button>
+
+        <>
+          {updateSlidesInfoAlert.visible && (
+            <Alert tone="info">
+              {updateSlidesInfoAlert.message}
+            </Alert>
+          )}
+        </>
+
+        <Text
+          alignment="start"
+          capitalization="default"
+          size="medium"
+          variant="regular"
+        >
+          Select a grade level to create a new variation of the selected activity using this slide deck!
+          The variation will be created using the same process as the Kikori app.
+        </Text>
+        
+        <SegmentedControl
+          options={gradeLevelSelectorOptions}
+          value={selectedAgeGroupIndex}
+          onChange={setSelectedAgeGroupIndex}
+        />
+
         <>
           {createVariationInfoAlert.visible &&
             (<Alert tone="info">
@@ -712,6 +721,7 @@ export const App = () => {
         }
         </>
 
+        <Text tone="critical" size="small">Don't forget to upload the slide deck PDF manually!</Text>
         <Button variant="secondary" onClick={handleCreateVariationButton} disabled={createVariationButton.disabled} stretch>
           {createVariationButton.message}
         </Button>
