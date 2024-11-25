@@ -1,35 +1,26 @@
+// general imports
 import { useState, useEffect } from "react";
+import scrollContainer from "styles/components.css";
+
+// canva SDK imports
 import {
-  Button, Rows, Title, Text, FormField, TextInput, CheckboxGroup, SegmentedControl, Alert, Badge, ProgressBar, LoadingIndicator,
-  Switch,
-  Box
+  Button, Rows, Title, Text, FormField, TextInput, CheckboxGroup, SegmentedControl, Alert, Badge, ProgressBar, LoadingIndicator, Switch, Box
 } from "@canva/app-ui-kit";
-import { FormattedMessage, useIntl } from "react-intl";
-import * as styles from "styles/components.css";
 import { addPage, getCurrentPageContext, requestExport } from "@canva/design";
-import { requestFontSelection, findFonts, getTemporaryUrl } from "@canva/asset";
-import { auth } from "@canva/user";
+import { getTemporaryUrl } from "@canva/asset";
 
-import { useSelection } from "utils/use_selection_hook";
-import axios from 'axios';
 
-import mongodb_response from "./api_calls/basic_call.json"; // demo fetchActivity response if api is down
-import chatgpt_response from "./api_calls/chatgpt_demo.json"; // demo chatgpt response to avoid using tokens
-
+/* GLOBALS; REVIEW BEFORE DEPLOYING */
 const API_URL = "https://kikori-slides-api-08c1d2c0a600.herokuapp.com"; // Heroku API for database querying and ChatGPT calls
-
-// const DEFAULT_ID = "6NyRnQ4h0mqQne3KE1Nm" // from LIVE database
 const DEFAULT_ID = "66a16fe0a17a5ac6a7936c5d" // from sandbox database, parent variation
+// const DEFAULT_ID = "6NyRnQ4h0mqQne3KE1Nm" // from LIVE database
 // const DEFAULT_ID = "66deb0c59cb7a67d18c1ef29" // from sandbox database, test activity with one age group
+const INHERIT_CREATOR_ID_DEFAULT = true; // default creator ID for variations; chassenathan for now
+const VARIATION_DESCRIPTION_DEFAULT = "Age group variation"; // default description for variations
+const USER_ID_DEFAULT = "GEvIbLpTT4hgw135BioFr9njDGB2"; // default user ID for updating slides; chassenathan for now
 
 
-/*
-example links
-collab: https://www.canva.com/design/DAGXIVPRmVA/BNuGvlizjon2eBApbrgTuA/edit?utm_content=DAGXIVPRmVA&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
-public: https://www.canva.com/design/DAGXIVPRmVA/E71n1hbRx0isF7PtHfK_FQ/view?utm_content=DAGXIVPRmVA&utm_campaign=designshare&utm_medium=link&utm_source=editor
-template: https://www.canva.com/design/DAGXIVPRmVA/hFSV5q0X2VRXsyh290v1xw/view?utm_content=DAGXIVPRmVA&utm_campaign=designshare&utm_medium=link&utm_source=publishsharelink&mode=preview
-*/
-
+// helper function to validate links and determine their type
 type CanvaLinkType = 'collaboration' | 'public view' | 'template' | 'unknown';
 function identifyCanvaLinkType(url: string): CanvaLinkType {
   if (/\/edit\?/.test(url)) {
@@ -42,7 +33,6 @@ function identifyCanvaLinkType(url: string): CanvaLinkType {
     return 'unknown';
   }
 }
-
 
 // available grade levels to select with the SegmentedSelect
 const gradeLevelSelectorOptions = [
@@ -149,7 +139,6 @@ async function uploadPdf(activityId: string, activityName: string) {
   }
 }
 
-
 // Kikori's selected font for the slide titles
 const FONTS = {
   "Wedges": "YAEKEi3zNJo:0"
@@ -246,30 +235,16 @@ async function addPageHelper(title: string, content: string) {
 }
 
 export const App = () => {
-  const slideDeck = chatgpt_response["slides"][0]; // demo slide deck for testing purposes
 
   /* state variables for various app elements */
 
-  // user selections for editing (not used at the moment)
-  const plaintextSelection = useSelection("plaintext"); // for tracking a user selection of plaintext for editing
-  const plaintextElementSelected = plaintextSelection.count > 0;
-  const currentSelection = useSelection("image"); // for tracking user selection of image
-  const isElementSelected = currentSelection.count > 0;
-  const [slideSelected, setSlideSelected] = useState(""); // for tracking which slide is selected for editing
-
-  // inputs
+  // INPUTS
   const [activityIdInput, setActivityIdInput] = useState(""); // for tracking activity ID input
   const [activityIdInputDisabled, setActivityIdInputDisabled] = useState(false); // for enabling/disabling input field
   const [selectedAgeGroupIndex, setSelectedAgeGroupIndex] = useState(-1); // grade level segmented selector
   const [collaborationLink, setCollaborationLink] = useState(""); // collaboration link text field
   const [templateLink, setTemplateLink] = useState(""); // brand template link text field
   const [publicViewLink, setPublicViewLink] = useState(""); // public link text field
-
-  // UPDATE THIS; false by default (make it clear that this activity was created with canva bot)
-  const [inheritCreatorIdInput, setInheritCreatorIdInput] = useState(false);
-
-  // UPDATE THIS; default to age group variation
-  const [variationDescription, setVariationDescription] = useState("Age group variation"); // variation description text field
 
   // BUTTONS
   // messages
@@ -286,7 +261,7 @@ export const App = () => {
   const [createVariationButton, setCreateVariationButton] = useState({ disabled: false, message: CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE }); // create variation button state
   const [updateSlidesButton, setUpdateSlidesButton] = useState({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE }); // update slide links button state
 
-  // other computed states
+  // COMPUTED STATES
   type Activity = { _id: string; age_group: number[]; title: string; };
   const [selectedActivity, setSelectedActivity] = useState<Activity>({ _id: "", age_group: [], title: "" }); // set when activity is verified
   const [isActivitySelected, setIsActivitySelected] = useState(false); // used to disable activity ID input
@@ -294,15 +269,12 @@ export const App = () => {
   const [slideGenerationProgressValue, setSlideGenerationProgressValue] = useState(0); // progress of progress bar
   const [interactingWithDatabase, setInteractingWithDatabase] = useState(false); // to disable buttons while interacting with database
 
-  // CHANGE THIS; set to chassenathan user ID for now
-  const [currentUser, setCurrentUser] = useState({ id: "GEvIbLpTT4hgw135BioFr9njDGB2" });
-
   // ALERTS
   // messages
   const SELECT_ACTIVITY_FIRST_MESSAGE = "Select an activity first! Scroll to the top.";
   const SELECT_GRADE_LEVEL_GENERATE_MESSAGE = "Select a grade level first. This is used to generate age-appropriate slides.";
 
-  // alerts
+  // states
   const [verifyAlert, setVerifyAlert] = useState({ visible: false, message: "", tone: "warn" }); // verifying ID alert
   const [generatingAlert, setGeneratingAlert] = useState({ visible: false, message: "Generating...", tone: "neutral" }); // generating slides alert
   // persistent informational alert below the slides button explaining how to use it
@@ -315,7 +287,7 @@ export const App = () => {
   const [updateSlidesInfoAlert, setUpdateSlidesInfoAlert] = useState({ visible: true, tone: "warn", message: SELECT_ACTIVITY_FIRST_MESSAGE }); // info for update slides button
   const [updateSlidesResultAlert, setUpdateSlidesResultAlert] = useState({ visible: false, tone: "neutral", message: "" }); // show result of updateActivitySlides persistently
 
-  // used whenever a button is pressed for clarity
+  // HELPER; used whenever a button is pressed for clarity
   async function disableAllResultAlerts() {
     setVerifyAlert({ visible: false, message: "", tone: "warn" });
     setUpdateSlidesResultAlert({ visible: false, message: "", tone: "" });
@@ -323,7 +295,9 @@ export const App = () => {
     setGeneratingAlert({ visible: false, message: "", tone: "" });
   }
 
-  /* handlers for app element interaction */
+
+
+  /* HANDLERS for app element interaction */
 
   // handler for "Verify activity ID" button
   async function handleVerifyActivityID() {
@@ -431,7 +405,7 @@ export const App = () => {
     }
   }
 
-
+  // handler for "Update Slide Links" button
   async function handleUpdateActivityButton() {
     try {
       setInteractingWithDatabase(true);
@@ -450,7 +424,7 @@ export const App = () => {
       // Step 2: Prepare the request body for updating the activity
       const requestBody = {
         activityId: selectedActivity._id,
-        userID: currentUser.id,
+        userID: USER_ID_DEFAULT,
         slides: {
           pdf: {
             name: pdfData.pdfName,
@@ -513,6 +487,7 @@ export const App = () => {
     }
   }
 
+  // handler for create variation button
   async function handleCreateVariationButton() {
     setInteractingWithDatabase(true); // disable normal button and alert updates
     disableAllResultAlerts(); // clear any existing alerts
@@ -528,8 +503,8 @@ export const App = () => {
         activityId: selectedActivity._id,
         ageGroup: [selectedAgeGroupIndex],
         userID: currentUser.id,
-        inheritCreatorID: inheritCreatorIdInput,
-        variation: variationDescription,
+        inheritCreatorID: INHERIT_CREATOR_ID_DEFAULT,
+        variation: VARIATION_DESCRIPTION_DEFAULT,
         slides: {
           publicViewLink: publicViewLink,
           collaborationLink: collaborationLink,
@@ -579,7 +554,7 @@ export const App = () => {
     }
   }
 
-  /*
+  /* HELPFUL CODE WHILE DEVELOPING
   // for exploring the openDesign function in Canva SDK
   async function handleOpenDesign(draft, helpers) {
     console.log(draft);
@@ -621,7 +596,6 @@ export const App = () => {
       
     });
   }
-  */
 
   // print the element that was just clicked and some details about it
   async function handleClick() {
@@ -645,7 +619,9 @@ export const App = () => {
   async function handleNothingClick() {
     console.log("nothing click");
   }
+  */
 
+  
   /* useEffects for complex input changes (e.g. link validation and changing button states on interactions with inputs) */
 
   // Template Link Effects
@@ -774,13 +750,14 @@ export const App = () => {
         setGenerateSlidesButton({ disabled: false, message: `Generate slides for ${gradeLevels[selectedAgeGroupIndex]}` });
         setSlidesButtonInfoAlert({ visible: false, message: "If you interact with Canva while slides are generating, they may generate out of order." });
       }
-    } 
+    }
 
   }, [isActivitySelected, selectedAgeGroupIndex, selectedActivity, publicViewLink, collaborationLink, templateLink, interactingWithDatabase, slideGenerationInProgress]);
 
   return (
-    <div className={styles.scrollContainer}>
+    <div className={scrollContainer}>
       <Rows spacing="2u">
+
         <Title
           alignment="start"
           capitalization="default"
@@ -789,6 +766,7 @@ export const App = () => {
           Kikori Canva Helper
         </Title>
 
+        {/* App Description Box */}
         <Box
           background="neutralLow"
           borderRadius="large"
@@ -814,6 +792,10 @@ export const App = () => {
             ]}
           />
         </Box>
+
+
+
+        {/* Activity ID Input Area */}
         <Text variant="bold" tone="tertiary">Copy an activity ID from the Kikori app or admin panel to get started!</Text>
 
         <FormField
@@ -859,14 +841,12 @@ export const App = () => {
         </>
 
 
-        <Text size="large" variant="bold">Generate Slides</Text>
 
-        <Box
-          background="neutralLow"
-          borderRadius="large"
-          padding="2u"
-        >
+       {/* Generate Slides Box */}
+        <Box background="neutralLow" borderRadius="large" padding="2u">
           <Rows spacing="1.5u">
+
+            <Text size="large" variant="bold">Generate Slides</Text>
             <Text>Select a grade level to generate an age-appropriate slide deck for the activity!</Text>
             <Text>Slides are based on the instructions in the activity you selected above.</Text>
             <SegmentedControl
@@ -892,7 +872,6 @@ export const App = () => {
               ]}
             />
             <Text size="small">Format selection not implemented yet.</Text>
-
 
             <> {interactingWithDatabase && (
               <LoadingIndicator size="medium" />
@@ -927,17 +906,16 @@ export const App = () => {
                 />
               )}
             </>
-          </Rows>
 
+          </Rows>
         </Box>
         <Alert tone="info">The slide deck is generated using ChatGPT. Review all slides carefully.</Alert>
 
 
 
+        {/* Slide Link Entry Area */}
         <Text size="large" variant="bold">Update Kikori Activity Database</Text>
-
         <Text>Copy these links from the share menu. These links allow Kikori users to access the slides.</Text>
-
 
         <FormField
           control={(props) => <TextInput
@@ -949,7 +927,6 @@ export const App = () => {
           label="Public view link"
         />
 
-        {/* Public Link Alert */}
         {publicLinkAlert.visible && (
           <Alert tone={publicLinkAlert.tone} onClose={() => setPublicLinkAlert({ ...publicLinkAlert, visible: false })}>
             {publicLinkAlert.message}
@@ -966,7 +943,6 @@ export const App = () => {
           label="Template link"
         />
 
-        {/* Template Link Alert */}
         {templateLinkAlert.visible && (
           <Alert tone={templateLinkAlert.tone} onClose={() => setTemplateLinkAlert({ ...templateLinkAlert, visible: false })}>
             {templateLinkAlert.message}
@@ -983,7 +959,6 @@ export const App = () => {
           label="Collaboration link"
         />
 
-        {/* Collaboration Link Alert */}
         {collaborationLinkAlert.visible && (
           <Alert tone={collaborationLinkAlert.tone} onClose={() => setCollaborationLinkAlert({ ...collaborationLinkAlert, visible: false })}>
             {collaborationLinkAlert.message}
@@ -995,13 +970,13 @@ export const App = () => {
           This app won't let you accidentally corrupt the database.
         </Alert>
 
-        <Box
-          background="neutralLow"
-          borderRadius="large"
-          padding="2u">
-          <Rows spacing="1.5u">
-            <Text size="large">Update Slides of Existing Activity </Text>
 
+
+        {/* Update Slides Box */}
+        <Box background="neutralLow" borderRadius="large" padding="2u">
+          <Rows spacing="1.5u">
+
+            <Text size="large" variant="bold">Update Slides of Existing Activity</Text>
             <Text>Click this button to update the slide links in the selected activity.</Text>
             <Text>This will NOT create a new activity; this updates the slides of an existing activity. To create a new variation, scroll down.</Text>
 
@@ -1032,24 +1007,22 @@ export const App = () => {
               stretch
             >
               {updateSlidesButton.message}
-
             </Button>
 
           </Rows>
         </Box>
-
-
         <Alert tone="info">This updates ONLY the slides field of the selected activity.</Alert>
 
 
 
+        {/* Create Variation Box */}
         <Box
           background="neutralLow"
           borderRadius="large"
           padding="2u"
         >
           <Rows spacing="1.5u">
-            <Text size="large">Create New Variation with Slides</Text>
+            <Text size="large" variant="bold">Create New Variation with Slides</Text>
             <Text>Select age group(s) and click this button to create an age group variation of the activity.</Text>
             <Text>This WILL create a new activity, for the selected ages, including this slide deck. To update an existing activity, scroll up.</Text>
 
@@ -1074,19 +1047,6 @@ export const App = () => {
               <LoadingIndicator size="medium" />
             )} </>
 
-            {/*
-        <FormField
-          control={(props) => <TextInput
-            name="variationDescription"
-            defaultValue="Age group variation"
-            value={variationDescription}
-            onChange={(e) => setVariationDescription(e)}
-            {...props}
-          />}
-          label="Variation description"
-        />
-      */}
-
             <> {createVariationResultAlert.visible &&
               (<Alert tone={createVariationResultAlert.tone} onDismiss={() => { setCreateVariationResultAlert((p) => ({ ...p, visible: false })) }}>
                 {createVariationResultAlert.message}
@@ -1097,14 +1057,13 @@ export const App = () => {
             <Button variant="secondary" onClick={handleCreateVariationButton} disabled={createVariationButton.disabled} stretch>
               {createVariationButton.message}
             </Button>
+
           </Rows>
         </Box>
-
         <Alert tone="info">Instructions, title, and tags in the new variation will be copied from the original activity.</Alert>
 
 
       </Rows>
-
     </div>
   );
 };
