@@ -684,7 +684,7 @@ export const App = () => {
                 key={age_group_index}
                 ariaLabel="selected activity grade level badge"
                 shape="regular"
-                text={["PK-K", "1-2", "3-5", "MS", "HS"][age_group_index]}
+                text={gradeLevels[age_group_index]}
                 tone="assist"
                 wrapInset="0"
               />)}     {selectedActivity.title}
