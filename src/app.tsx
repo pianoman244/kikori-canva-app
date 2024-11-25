@@ -50,7 +50,7 @@ const gradeLevelSelectorOptions = [
   //{ label: 'MS', value: 4 },
   //{ label: 'HS', value: 5 }
 ];
-const gradeLevels = ["PK-K", "1-2", "3-5", "MS", "HS"]; // for accessing grade level to display by index
+const gradeLevels = ["all", "PK-K", "1-2", "3-5", "MS", "HS", "Higher Ed", "Workforce/PD"]; // for accessing grade level to display by index
 
 // helper function to call API to generate slides for given activity and grade level
 // activityId is just the activity id string, gradeLevel is something from the grade level list
@@ -243,7 +243,7 @@ export const App = () => {
   const [collaborationLinkAlert, setCollaborationLinkAlert] = useState({ visible: false, message: "", tone: "warn" }); // collaboration link validatoin
   const [templateLinkAlert, setTemplateLinkAlert] = useState({ visible: false, message: "", tone: "warn" }); // brand template link validation
   const [publicLinkAlert, setPublicLinkAlert] = useState({ visible: false, message: "", tone: "warn" }); // public link validation
-  const [createVariationInfoAlert, setCreateVariationInfoAlert] = useState({ visible: true, message: "Select an activity to create a variation.", tone: "info" }); // info for create variation button
+  const [createVariationInfoAlert, setCreateVariationInfoAlert] = useState({ visible: true, message: "Select an activity to create a variation.", tone: "warn" }); // info for create variation button
   const [createVariationResultAlert, setCreateVariationResultAlert] = useState({ visible: false, message: "", tone: "" }); // error alert for if create variation fails
   const [updateSlidesInfoAlert, setUpdateSlidesInfoAlert] = useState({ visible: true, message: "Select an activity to update its slide links." }); // info for update slides button
 
@@ -584,19 +584,19 @@ export const App = () => {
       identifyCanvaLinkType(publicViewLink) === 'public view';
 
     if (selectedActivity._id == "") {
-      setCreateVariationInfoAlert({ visible: true, message: "Select an activity to create a variation.", tone: "info" });
+      setCreateVariationInfoAlert({ visible: true, message: "Select an activity to create a variation.", tone: "warn" });
       setCreateVariationButton({ disabled: true, message: "Create variation" });
     } else if (!multipleGradesInSelectedActivity) {
-      setCreateVariationInfoAlert({ visible: true, message: "The selected activity only has one age group. Find the parent activity to create a variation.", tone: "info" });
+      setCreateVariationInfoAlert({ visible: true, message: "The selected activity only has one age group. Find the parent activity to create a variation.", tone: "warn" });
       setCreateVariationButton({ disabled: true, message: "Create variation" });
     } else if (selectedAgeGroupIndex == -1) {
-      setCreateVariationInfoAlert({ visible: true, message: "Select a grade level to create a variation.", tone: "info" });
+      setCreateVariationInfoAlert({ visible: true, message: "Select a grade level to create a variation.", tone: "warn" });
       setCreateVariationButton({ disabled: true, message: "Create variation for selected activity" });
     } else if (!linksValid) {
-      setCreateVariationInfoAlert({ visible: true, message: "Enter valid collaboration and brand template links to create a variation.", tone: "info" });
+      setCreateVariationInfoAlert({ visible: true, message: "Enter valid collaboration and brand template links to create a variation.", tone: "warn" });
       setCreateVariationButton({ disabled: true, message: `Create variation for ${gradeLevels[selectedAgeGroupIndex]}` });
     } else {
-      setCreateVariationInfoAlert({ visible: false, message: "", tone: "info" });
+      setCreateVariationInfoAlert({ visible: false, message: "", tone: "warn" });
       setCreateVariationButton({ disabled: false, message: `Create variation for ${gradeLevels[selectedAgeGroupIndex]}` });
     }
 
@@ -747,7 +747,7 @@ export const App = () => {
           )}
         </>
 
-        <Alert tone="info">
+        <Alert tone="warn">
           {slidesButtonInfoAlert.message}
         </Alert>
 
