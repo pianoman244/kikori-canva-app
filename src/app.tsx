@@ -1,6 +1,6 @@
 // general imports
 import { useState, useEffect } from "react";
-import scrollContainer from "styles/components.css";
+import * as styles from "styles/components.css";
 
 // canva SDK imports
 import {
@@ -253,7 +253,7 @@ export const App = () => {
   const CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE = "Create variation";
   const CREATE_VARIATION_BUTTON_ACTIVITY_SELECTED_DEFAULT_MESSAGE = "Create variation for selected activity";
   const UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE = "Update slide links";
-  const UPDATE_SLIDES_BUTTON_ACTIVITY_SELECTED_MESSAGE = "Update slide links for selected activity";
+  const UPDATE_SLIDES_BUTTON_ACTIVITY_SELECTED_MESSAGE = "Update slide links";
 
   // states
   const [verifyActivityIdButton, setVerifyActivityIdButton] = useState({ variant: "primary", text: "Fetch Activity by ID", disabled: false })
@@ -494,6 +494,12 @@ export const App = () => {
     setCreateVariationInfoAlert({ visible: false, message: "", tone: "neutral" });
 
     try {
+      // Show an alert that the update process has started
+      setCreateVariationInfoAlert({
+        visible: true,
+        tone: "neutral",
+        message: "Exporting PDF...",
+      });
 
       const pdfData = await uploadPdf(selectedActivity._id, selectedActivity.title);
       console.log("PDF uploaded successfully:", pdfData);
@@ -502,7 +508,7 @@ export const App = () => {
       const requestBody = {
         activityId: selectedActivity._id,
         ageGroup: [selectedAgeGroupIndex],
-        userID: currentUser.id,
+        userID: USER_ID_DEFAULT,
         inheritCreatorID: INHERIT_CREATOR_ID_DEFAULT,
         variation: VARIATION_DESCRIPTION_DEFAULT,
         slides: {
@@ -621,7 +627,7 @@ export const App = () => {
   }
   */
 
-  
+
   /* useEffects for complex input changes (e.g. link validation and changing button states on interactions with inputs) */
 
   // Template Link Effects
@@ -755,7 +761,7 @@ export const App = () => {
   }, [isActivitySelected, selectedAgeGroupIndex, selectedActivity, publicViewLink, collaborationLink, templateLink, interactingWithDatabase, slideGenerationInProgress]);
 
   return (
-    <div className={scrollContainer}>
+    <div className={styles.scrollContainer}>
       <Rows spacing="2u">
 
         <Title
@@ -767,11 +773,7 @@ export const App = () => {
         </Title>
 
         {/* App Description Box */}
-        <Box
-          background="neutralLow"
-          borderRadius="large"
-          padding="2u"
-        >
+        <Box background="neutralLow" borderRadius="large" padding="2u">
           <Text size="large" variant="bold">
             In this app, you can:
           </Text>
@@ -855,7 +857,7 @@ export const App = () => {
               onChange={setSelectedAgeGroupIndex}
             />
 
-            <Text size="large">Slide Format</Text>
+            <Text size="large">Slide Content</Text>
             <CheckboxGroup defaultValue={["full"]}
               options={[
                 {
@@ -871,7 +873,25 @@ export const App = () => {
                 }
               ]}
             />
-            <Text size="small">Format selection not implemented yet.</Text>
+            <Text size="small">Content selection not implemented yet.</Text>
+
+            <Text size="large">Slide Design</Text>
+            <CheckboxGroup defaultValue={["PK-5"]}
+              options={[
+                {
+                  label: 'PK-5 Brand Template',
+                  value: 'PK-5',
+                  disabled: true
+
+                },
+                {
+                  label: 'MS Brand Template',
+                  value: 'MS',
+                  disabled: true
+                }
+              ]}
+            />
+            <Text size="small">Design selection not implemented yet.</Text>
 
             <> {interactingWithDatabase && (
               <LoadingIndicator size="medium" />
@@ -1037,7 +1057,7 @@ export const App = () => {
 
             <>
               {createVariationInfoAlert.visible &&
-                (<Alert tone="warn">
+                (<Alert tone={createVariationInfoAlert.tone}>
                   {createVariationInfoAlert.message}
                 </Alert>)
               }
