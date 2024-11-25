@@ -4,9 +4,12 @@ import {
 } from "@canva/app-ui-kit";
 import { FormattedMessage, useIntl } from "react-intl";
 import * as styles from "styles/components.css";
-import { addPage, getCurrentPageContext, openDesign, addNativeElement } from "@canva/design";
+import { addPage, getCurrentPageContext, requestExport } from "@canva/design";
 import { requestFontSelection, findFonts, getTemporaryUrl } from "@canva/asset";
+import { auth } from "@canva/user";
+
 import { useSelection } from "utils/use_selection_hook";
+import axios from 'axios';
 
 import mongodb_response from "./api_calls/basic_call.json"; // demo fetchActivity response if api is down
 import chatgpt_response from "./api_calls/chatgpt_demo.json"; // demo chatgpt response to avoid using tokens
@@ -17,18 +20,35 @@ const API_URL = "https://kikori-slides-api-08c1d2c0a600.herokuapp.com"; // Herok
 const DEFAULT_ID = "66a16fe0a17a5ac6a7936c5d" // from sandbox database, parent variation
 // const DEFAULT_ID = "66deb0c59cb7a67d18c1ef29" // from sandbox database, test activity with one age group
 
-// validation patterns for shareable Canva links
-const canvaCollabPattern = /^https:\/\/www\.canva\.com\/design\/[A-Za-z0-9]+\/[A-Za-z0-9]+\/edit\?utm_content=[A-Za-z0-9]+(&.*)*$/;
-const canvaTemplatePattern = /^https:\/\/www\.canva\.com\/design\/[A-Za-z0-9]+\/[A-Za-z0-9]+\/view\?utm_content=[A-Za-z0-9]+(&.*mode=preview)?(&.*)*$/;
-const validateLink = (link: string, pattern: RegExp) => pattern.test(link);
+
+/*
+example links
+collab: https://www.canva.com/design/DAGXIVPRmVA/BNuGvlizjon2eBApbrgTuA/edit?utm_content=DAGXIVPRmVA&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+public: https://www.canva.com/design/DAGXIVPRmVA/E71n1hbRx0isF7PtHfK_FQ/view?utm_content=DAGXIVPRmVA&utm_campaign=designshare&utm_medium=link&utm_source=editor
+template: https://www.canva.com/design/DAGXIVPRmVA/hFSV5q0X2VRXsyh290v1xw/view?utm_content=DAGXIVPRmVA&utm_campaign=designshare&utm_medium=link&utm_source=publishsharelink&mode=preview
+*/
+
+type CanvaLinkType = 'collaboration' | 'public view' | 'template' | 'unknown';
+function identifyCanvaLinkType(url: string): CanvaLinkType {
+  if (/\/edit\?/.test(url)) {
+    return 'collaboration';
+  } else if (/\/view\?.*mode=preview/.test(url)) {
+    return 'template';
+  } else if (/\/view\?(?!.*mode=preview)/.test(url)) {
+    return 'public view';
+  } else {
+    return 'unknown';
+  }
+}
+
 
 // available grade levels to select with the SegmentedSelect
 const gradeLevelSelectorOptions = [
-  { label: 'PK-K', value: 0 },
-  { label: '1-2', value: 1 },
-  { label: '3-5', value: 2 },
-  { label: 'MS', value: 3 },
-  { label: 'HS', value: 4 }
+  { label: 'PK-K', value: 1 },
+  { label: '1-2', value: 2 },
+  { label: '3-5', value: 3 },
+  //{ label: 'MS', value: 4 },
+  //{ label: 'HS', value: 5 }
 ];
 const gradeLevels = ["PK-K", "1-2", "3-5", "MS", "HS"]; // for accessing grade level to display by index
 
@@ -70,7 +90,7 @@ function validateActivityData(activityData): boolean {
   });
 
   if (errors.length > 0) {
-    console.error(`Activity data for activity with ID ${activityData.docId} has the following problems:`, errors.join(" | "));
+    console.error(`Activity data for activity with ID ${activityData._id} has the following problems:`, errors.join(" | "));
     return false
   } else {
     return true
@@ -190,6 +210,13 @@ export const App = () => {
   const [selectedAgeGroupIndex, setSelectedAgeGroupIndex] = useState(-1); // grade level segmented selector
   const [collaborationLink, setCollaborationLink] = useState(""); // collaboration link text field
   const [templateLink, setTemplateLink] = useState(""); // brand template link text field
+  const [publicViewLink, setPublicViewLink] = useState(""); // public link text field
+
+  // UPDATE THIS; false by default (make it clear that this activity was created with canva bot)
+  const [inheritCreatorIdInput, setInheritCreatorIdInput] = useState(false);
+
+  // UPDATE THIS; default to age group variation
+  const [variationDescription, setVariationDescription] = useState("Age group variation"); // variation description text field
 
   // buttons
   const [verifyActivityIdButton, setVerifyActivityIdButton] = useState({ variant: "primary", text: "Fetch Activity by ID", disabled: false })
@@ -198,10 +225,13 @@ export const App = () => {
   const [updateSlidesButton, setUpdateSlidesButton] = useState({ disabled: true, message: "Update slide links" }); // update slide links button state
 
   // other computed states
-  type Activity = { docId: string; age_group: number[]; title: string; };
-  const [selectedActivity, setSelectedActivity] = useState<Activity>({ docId: "", age_group: [], title: "" }); // set when activity is verified
+  type Activity = { _id: string; age_group: number[]; title: string; };
+  const [selectedActivity, setSelectedActivity] = useState<Activity>({ _id: "", age_group: [], title: "" }); // set when activity is verified
   const [slideGenerationInProgress, setSlideGenerationInProgress] = useState(false); // used to render progress bar
   const [slideGenerationProgressValue, setSlideGenerationProgressValue] = useState(0); // progress of progress bar
+
+  // CHANGE THIS; set to chassenathan user ID for now
+  const [currentUser, setCurrentUser] = useState({ id: "GEvIbLpTT4hgw135BioFr9njDGB2" });
 
   const [isCreatingVariation, setIsCreatingVariation] = useState(false); // to disable createVariation button/alert updates
 
@@ -212,6 +242,7 @@ export const App = () => {
   const [slidesButtonInfoAlert, setSlidesButtonInfoAlert] = useState({ message: "Select an activity to generate slides." });
   const [collaborationLinkAlert, setCollaborationLinkAlert] = useState({ visible: false, message: "", tone: "warn" }); // collaboration link validatoin
   const [templateLinkAlert, setTemplateLinkAlert] = useState({ visible: false, message: "", tone: "warn" }); // brand template link validation
+  const [publicLinkAlert, setPublicLinkAlert] = useState({ visible: false, message: "", tone: "warn" }); // public link validation
   const [createVariationInfoAlert, setCreateVariationInfoAlert] = useState({ visible: true, message: "Select an activity to create a variation.", tone: "info" }); // info for create variation button
   const [createVariationResultAlert, setCreateVariationResultAlert] = useState({ visible: false, message: "", tone: "" }); // error alert for if create variation fails
   const [updateSlidesInfoAlert, setUpdateSlidesInfoAlert] = useState({ visible: true, message: "Select an activity to update its slide links." }); // info for update slides button
@@ -222,7 +253,7 @@ export const App = () => {
   async function handleVerifyActivityID() {
 
     // if no activity is selected currently, this button searches for a new one based on activity ID text input
-    if (selectedActivity.docId == "") {
+    if (selectedActivity._id == "") {
       setVerifyActivityIdButton((prevState) => ({ ...prevState, disabled: true })); // disable button while searching
 
       // fetch the ID using the backend
@@ -254,7 +285,7 @@ export const App = () => {
           // activity verified; update things
         } else {
           setVerifyAlert({ visible: true, message: `Activity found!`, tone: "positive" }); // alert
-          setSelectedActivity({ docId: data.docId, age_group: data.age_group, title: data.title }); // save some activity for other things to reference
+          setSelectedActivity({ _id: data._id, age_group: data.age_group, title: data.title }); // save some activity for other things to reference
           setActivityIdInputDisabled(true);
           setVerifyActivityIdButton({ variant: "secondary", disabled: false, text: "Use other activity" }); // re-enable button and change function
         }
@@ -262,7 +293,7 @@ export const App = () => {
 
       // if an activity is currently selected, this button resets the selected activity which affects other things via useEffects
     } else {
-      setSelectedActivity({ docId: "", age_group: [], title: "" }); // reset activity selection
+      setSelectedActivity({ _id: "", age_group: [], title: "" }); // reset activity selection
       setVerifyActivityIdButton({ variant: "primary", disabled: false, text: "Verify Activity ID" }); // reset this button
       setActivityIdInputDisabled(false); // re-enable activity id input
       setVerifyAlert((prevState) => ({ ...prevState, visible: false })); // hide alerts
@@ -277,16 +308,16 @@ export const App = () => {
       setSlideGenerationProgressValue(0);
 
       const sel_cycle = ["play", "reflect", "connect", "grow"];
-      const response = await generateSlides(selectedActivity.docId, gradeLevels[selectedAgeGroupIndex]);
+      const response = await generateSlides(selectedActivity._id, gradeLevels[selectedAgeGroupIndex]);
 
-      if (!response || !response.chatgptResponse || !response.chatgptResponse.slides) {
-        throw new Error("Invalid response format from generateSlides");
+      if (!response || !response["slides"]) {
+        throw new Error("Invalid response format from generateSlides: " + JSON.stringify(response));
       }
 
       setGeneratingAlert({ visible: true, message: "Generating slides...", tone: "neutral" });
       setSlideGenerationProgressValue(25);
 
-      const deck = response.chatgptResponse.slides[0];
+      const deck = response.slides[0];
       console.log("Response: " + JSON.stringify(response));
       console.log("Deck: " + JSON.stringify(deck));
 
@@ -323,36 +354,109 @@ export const App = () => {
     }
   }
 
+
   async function handleCreateVariationButton() {
     setIsCreatingVariation(true); // disable normal button and alert updates
     setCreateVariationInfoAlert({ visible: false, message: "", tone: "neutral" });
     setCreateVariationButton({ disabled: true, message: "Creating variation..." });
 
-    const response = await fetch(API_URL + '/createVariation', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        "activityId": selectedActivity.docId,
-        "ageGroup": selectedAgeGroupIndex,
-        "collaborationLink": collaborationLink,
-        "templateLink": templateLink
-      })
-    });
+    try {
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      setCreateVariationResultAlert({ visible: true, tone: "warn", message: `Error creating variation: ${errorData?.error ?? "see logs"}` });
-      console.log("Error creating variation:", errorData);
-    } else {
-      setCreateVariationResultAlert({ visible: true, tone: "positive", message: "Variation created successfully!" });
+      // export PDF with Canva Connect API
+      const export_blob = await requestExport({ "acceptedFileTypes": ["pdf_standard"] });
+      if (export_blob.status === "aborted") {
+        throw new Error("Canva PDF export was aborted");
+      }
+
+      console.log("export_blob:", export_blob);
+      const canvaExportBlobUrl = export_blob.exportBlobs[0].url;
+
+      // Upload to Firebase using backend
+      const uploadPdfResponse = await fetch(API_URL + '/uploadPdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          exportBlobUrl: canvaExportBlobUrl,
+          activityId: selectedActivity._id,
+          activityName: selectedActivity.title,
+        })
+      });
+
+
+      if (!uploadPdfResponse.ok) {
+        const errorData = await uploadPdfResponse.json();
+        setCreateVariationResultAlert({
+          visible: true,
+          tone: "warn",
+          message: `Error uploading PDF: ${errorData?.message ?? "Unknown error"}`
+        });
+        console.error("Error uploading PDF:", errorData);
+        return;
+      }
+
+      const pdfData = await uploadPdfResponse.json();
+      console.log("PDF uploaded successfully:", pdfData);
+
+      // Step 2: Use the uploaded PDF details to create the variation
+      const requestBody = {
+        activityId: selectedActivity._id,
+        ageGroup: [selectedAgeGroupIndex],
+        userID: currentUser.id, 
+        inheritCreatorID: inheritCreatorIdInput, 
+        variation: variationDescription, 
+        slides: {
+          publicViewLink: publicViewLink,
+          collaborationLink: collaborationLink,
+          templateLink: templateLink,
+          pdf: {
+            name: pdfData.pdfName, 
+            source: pdfData.pdfUrl, 
+            thumbnail: pdfData.thumbnailUrl, 
+          },
+        },
+      };
+
+      const response = await fetch(`${API_URL}/createVariation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setCreateVariationResultAlert({
+          visible: true,
+          tone: "warn",
+          message: `Error creating variation: ${errorData?.errors?.join(", ") ?? "Unknown error"}`
+        });
+        console.error("Error creating variation:", errorData);
+      } else {
+        const responseData = await response.json();
+        setCreateVariationResultAlert({
+          visible: true,
+          tone: "positive",
+          message: "Variation created successfully!"
+        });
+        console.log("Variation created successfully:", responseData);
+      }
+    } catch (error) {
+      console.error("Unexpected error in handleCreateVariationButton:", error);
+      setCreateVariationResultAlert({
+        visible: true,
+        tone: "warn",
+        message: "Unexpected error occurred while creating variation. See logs."
+      });
+    } finally {
+      setIsCreatingVariation(false); // re-enable button and alert updates
     }
-
-    setIsCreatingVariation(false); // re-enable button and alert updates
-    // will automatically update the button and alert once because this is a dependency in the useEffect
   }
 
+
+  /*
   // for exploring the openDesign function in Canva SDK
   async function handleOpenDesign(draft, helpers) {
     console.log(draft);
@@ -372,7 +476,6 @@ export const App = () => {
       }
 
       // Inserting a new rectangle element using list methods
-      /*
       const newRect = elementBuilder.createRectElement({
         stroke: {"weight": 1, "color": {"type": "solid", "color": "#FFFFFF"}},
         top: 100,
@@ -392,9 +495,10 @@ export const App = () => {
       draft.page.elements.insertAfter(undefined, newRect);
   
       return await draft.save();
-      */
+      
     });
   }
+  */
 
   // print the element that was just clicked and some details about it
   async function handleClick() {
@@ -421,40 +525,65 @@ export const App = () => {
 
   /* useEffects for complex input changes (e.g. link validation and changing button states on interactions with inputs) */
 
-  // Collaboration Link Effects
-  useEffect(() => {
-    if (!collaborationLink) {
-      setCollaborationLinkAlert({ visible: false, message: "", tone: "warn" });
-    } else if (validateLink(collaborationLink, canvaCollabPattern)) {
-      setCollaborationLinkAlert({ visible: true, message: "Link valid!", tone: "positive" });
-      const timer = setTimeout(() => setCollaborationLinkAlert({ visible: false, message: "", tone: "warn" }), 3000);
-      return () => clearTimeout(timer);
-    } else {
-      setCollaborationLinkAlert({ visible: true, message: "Invalid Canva collaboration link format.", tone: "warn" });
-    }
-  }, [collaborationLink]);
-
   // Template Link Effects
   useEffect(() => {
     if (!templateLink) {
       setTemplateLinkAlert({ visible: false, message: "", tone: "warn" });
-    } else if (validateLink(templateLink, canvaTemplatePattern)) {
+    }
+
+    const linkType = identifyCanvaLinkType(templateLink);
+
+    if (linkType === 'template') {
       setTemplateLinkAlert({ visible: true, message: "Link valid!", tone: "positive" });
       const timer = setTimeout(() => setTemplateLinkAlert({ visible: false, message: "", tone: "warn" }), 3000);
       return () => clearTimeout(timer);
-    } else {
-      setTemplateLinkAlert({ visible: true, message: "Invalid Canva brand template link format.", tone: "warn" });
+    } else if (linkType !== 'unknown') {
+      setTemplateLinkAlert({ visible: true, message: `You entered a ${linkType} link. Please enter a template link.`, tone: "warn" });
     }
   }, [templateLink]);
+
+  // Collaboration Link Effects
+  useEffect(() => {
+    if (!collaborationLink) {
+      setCollaborationLinkAlert({ visible: false, message: "", tone: "warn" });
+    }
+
+    const linkType = identifyCanvaLinkType(collaborationLink);
+    if (linkType === 'collaboration') {
+      setCollaborationLinkAlert({ visible: true, message: "Link valid!", tone: "positive" });
+      const timer = setTimeout(() => setCollaborationLinkAlert({ visible: false, message: "", tone: "warn" }), 3000);
+      return () => clearTimeout(timer);
+    } else if (linkType !== 'unknown') {
+      setCollaborationLinkAlert({ visible: true, message: `You entered a ${linkType} link. Please enter a collaboration link.`, tone: "warn" })
+    };
+  }, [collaborationLink]);
+
+  // Public view link effects
+  useEffect(() => {
+    if (!publicViewLink) {
+      setPublicLinkAlert({ visible: false, message: "", tone: "warn" });
+    }
+
+    const linkType = identifyCanvaLinkType(publicViewLink);
+    if (linkType === 'public view') {
+      setPublicLinkAlert({ visible: true, message: "Link valid!", tone: "positive" });
+      const timer = setTimeout(() => setPublicLinkAlert({ visible: false, message: "", tone: "warn" }), 3000);
+      return () => clearTimeout(timer);
+    } else if (linkType !== 'unknown') {
+      setPublicLinkAlert({ visible: true, message: `You entered a ${linkType} link. Please enter a public view link.`, tone: "warn" })
+    };
+  }, [publicViewLink]);
 
   // Effect to enable "Create Activity Variation" button and modify alert based on all conditions
   useEffect(() => {
     if (isCreatingVariation) return; // do nothing if variation is being created currently
 
     const multipleGradesInSelectedActivity = selectedActivity.age_group.length > 1;
-    const linksValid = validateLink(collaborationLink, canvaCollabPattern) && validateLink(templateLink, canvaTemplatePattern);
+    const linksValid = identifyCanvaLinkType(collaborationLink) === 'collaboration' &&
+      identifyCanvaLinkType(templateLink) === 'template' &&
+      identifyCanvaLinkType(publicViewLink) === 'public view';
 
-    if (selectedActivity.docId == "") {
+    if (selectedActivity._id == "") {
       setCreateVariationInfoAlert({ visible: true, message: "Select an activity to create a variation.", tone: "info" });
       setCreateVariationButton({ disabled: true, message: "Create variation" });
     } else if (!multipleGradesInSelectedActivity) {
@@ -475,7 +604,7 @@ export const App = () => {
 
   // Effect to enable "Update Slides" button and modify alert
   useEffect(() => {
-    if (selectedActivity.docId == "") {
+    if (selectedActivity._id == "") {
       setUpdateSlidesButton({ disabled: true, message: "Update slide links" });
       setUpdateSlidesInfoAlert({ visible: true, message: "Select an activity to update its slide links." });
     } else {
@@ -487,13 +616,13 @@ export const App = () => {
   // Set generating slides button and persistent informational alert below it
   useEffect(() => {
     if (!slideGenerationInProgress) {
-      if (selectedActivity.docId == "") {
+      if (selectedActivity._id == "") {
         setGenerateSlidesButton({ disabled: true, message: "Generate slides" });
         setSlidesButtonInfoAlert({ message: "Select an activity to generate slides." });
-      } else if (selectedActivity.docId != "" && selectedAgeGroupIndex == -1) {
+      } else if (selectedActivity._id != "" && selectedAgeGroupIndex == -1) {
         setGenerateSlidesButton({ disabled: true, message: "Generate slides for selected activity" });
         setSlidesButtonInfoAlert({ message: "Select a grade level to generate slides for the selected activity." });
-      } else if (selectedActivity.docId != "" && selectedAgeGroupIndex != -1) {
+      } else if (selectedActivity._id != "" && selectedAgeGroupIndex != -1) {
         setGenerateSlidesButton({ disabled: false, message: `Generate slides for ${gradeLevels[selectedAgeGroupIndex]}` });
         setSlidesButtonInfoAlert({ message: "If you interact with Canva while slides are generating, they may generate out of order." });
       }
@@ -550,7 +679,7 @@ export const App = () => {
         />
 
         <>
-          {selectedActivity.docId != "" && (
+          {selectedActivity._id != "" && (
             <Text>
               {selectedActivity.age_group.map((age_group_index, _) => <Badge
                 key={age_group_index}
@@ -628,21 +757,24 @@ export const App = () => {
         </Text>
         <Text tone="critical">Note: automatic PDF uploading is not configured yet. You must manually upload the PDF copy of the slides.</Text>
 
+        <Text size="small">
+          Copy these links from the share menu. They cannot be generated automatically, unfortunately. (The PDF can.)
+        </Text>
+
         <FormField
           control={(props) => <TextInput
-            name="collaborationLink"
-            value={collaborationLink}
-            onChange={(e) => setCollaborationLink(e)}
+            name="publicLink"
+            value={publicViewLink}
+            onChange={(e) => setPublicViewLink(e)}
             {...props}
           />}
-          /*description="Input the ID of an activity in the Kikori app"*/
-          label="Collaboration link"
+          label="Public view link"
         />
 
-        {/* Collaboration Link Alert */}
-        {collaborationLinkAlert.visible && (
-          <Alert tone={collaborationLinkAlert.tone} onClose={() => setCollaborationLinkAlert({ ...collaborationLinkAlert, visible: false })}>
-            {collaborationLinkAlert.message}
+        {/* Public Link Alert */}
+        {publicLinkAlert.visible && (
+          <Alert tone={publicLinkAlert.tone} onClose={() => setPublicLinkAlert({ ...publicLinkAlert, visible: false })}>
+            {publicLinkAlert.message}
           </Alert>
         )}
 
@@ -653,14 +785,30 @@ export const App = () => {
             onChange={(e) => setTemplateLink(e)}
             {...props}
           />}
-          description="Copy these links from the share menu. They cannot be generated automatically, unfortunately. (The PDF can.)"
-          label="Brand template link"
+          label="Template link"
         />
 
         {/* Template Link Alert */}
         {templateLinkAlert.visible && (
           <Alert tone={templateLinkAlert.tone} onClose={() => setTemplateLinkAlert({ ...templateLinkAlert, visible: false })}>
             {templateLinkAlert.message}
+          </Alert>
+        )}
+
+        <FormField
+          control={(props) => <TextInput
+            name="collaborationLink"
+            value={collaborationLink}
+            onChange={(e) => setCollaborationLink(e)}
+            {...props}
+          />}
+          label="Collaboration link"
+        />
+
+        {/* Collaboration Link Alert */}
+        {collaborationLinkAlert.visible && (
+          <Alert tone={collaborationLinkAlert.tone} onClose={() => setCollaborationLinkAlert({ ...collaborationLinkAlert, visible: false })}>
+            {collaborationLinkAlert.message}
           </Alert>
         )}
 
@@ -695,7 +843,7 @@ export const App = () => {
           Select a grade level to create a new variation of the selected activity using this slide deck!
           The variation will be created using the same process as the Kikori app.
         </Text>
-        
+
         <SegmentedControl
           options={gradeLevelSelectorOptions}
           value={selectedAgeGroupIndex}
