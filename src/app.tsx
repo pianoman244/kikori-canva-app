@@ -663,7 +663,7 @@ export const App = () => {
             }
           ]}
         />
-        <Text variant="bold" tone="tertiary">Copy an activity ID from the Kikori app and enter it into the text box to get started!</Text>
+        <Text variant="bold" tone="tertiary">Copy an activity ID from the Kikori app or admin panel and enter it into the text box to get started!</Text>
 
         <FormField
           control={(props) => <TextInput
@@ -711,6 +711,8 @@ export const App = () => {
           * * * * * * *
         </Text>
 
+        <Text size="large" variant="bold">Generate Slides</Text>
+
         <Text>Select a grade level to generate an age-appropriate slide deck for the activity based on the lesson plan!</Text>
         <Text>Currently, this will always generate slides for Play, Reflect, Connect, AND Grow. More options will be added eventually.</Text>
         <Text size="small">The slide deck is generated using ChatGPT. Review all slides carefully.</Text>
@@ -748,6 +750,8 @@ export const App = () => {
         <Alert tone="info">
           {slidesButtonInfoAlert.message}
         </Alert>
+
+        <Text size="large" variant="bold">Upate Kikori Activity Database</Text>
 
         <Text>Enter the collaboration and brand template links to update the slide links in the activity or create a new variation of it.</Text>
         <Text size="small">
@@ -825,7 +829,7 @@ export const App = () => {
 
         <>
           {updateSlidesInfoAlert.visible && (
-            <Alert tone="info">
+            <Alert tone="warn">
               {updateSlidesInfoAlert.message}
             </Alert>
           )}
@@ -849,7 +853,7 @@ export const App = () => {
 
         <>
           {createVariationInfoAlert.visible &&
-            (<Alert tone="info">
+            (<Alert tone="warn">
               {createVariationInfoAlert.message}
             </Alert>)
           }
