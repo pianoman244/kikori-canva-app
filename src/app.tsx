@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {
-  Button, Rows, Title, Text, FormField, TextInput, CheckboxGroup, SegmentedControl, Alert, Badge, ProgressBar, LoadingIndicator
+  Button, Rows, Title, Text, FormField, TextInput, CheckboxGroup, SegmentedControl, Alert, Badge, ProgressBar, LoadingIndicator,
+  Switch
 } from "@canva/app-ui-kit";
 import { FormattedMessage, useIntl } from "react-intl";
 import * as styles from "styles/components.css";
@@ -96,6 +97,57 @@ function validateActivityData(activityData): boolean {
     return true
   }
 }
+
+/**
+ * Helper function to process and upload a PDF of the input activity.
+ * 
+ * @param activityId - The ID of the activity.
+ * @param activityName - The name of the activity.
+ * @returns An object containing the uploaded PDF's details (`pdfName`, `pdfUrl`, `thumbnailUrl`).
+ */
+async function uploadPdf(activityId: string, activityName: string) {
+  try {
+    // Step 1: Request a PDF export from Canva
+    const exportBlob = await requestExport({ acceptedFileTypes: ["pdf_standard"] });
+    if (exportBlob.status === "aborted") {
+      throw new Error("Canva PDF export was aborted.");
+    }
+    console.log("Export blob:", exportBlob);
+    const canvaExportBlobUrl = exportBlob.exportBlobs[0].url;
+
+    // Step 2: Upload the exported PDF to the backend
+    const uploadPdfResponse = await fetch(`${API_URL}/uploadPdf`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        exportBlobUrl: canvaExportBlobUrl,
+        activityId,
+        activityName,
+      }),
+    });
+
+    if (!uploadPdfResponse.ok) {
+      const errorData = await uploadPdfResponse.json();
+      throw new Error(`Error uploading PDF: ${errorData?.message ?? "Unknown error"}`);
+    }
+
+    const pdfData = await uploadPdfResponse.json();
+    console.log("PDF uploaded successfully:", pdfData);
+
+    // Return the uploaded PDF details
+    return {
+      pdfName: pdfData.pdfName,
+      pdfUrl: pdfData.pdfUrl,
+      thumbnailUrl: pdfData.thumbnailUrl,
+    };
+  } catch (error) {
+    console.error("Error in processAndUploadPdf:", error);
+    throw error; // Re-throw the error so the caller can handle it
+  }
+}
+
 
 // Kikori's selected font for the slide titles
 const FONTS = {
@@ -235,17 +287,22 @@ export const App = () => {
 
   const [isCreatingVariation, setIsCreatingVariation] = useState(false); // to disable createVariation button/alert updates
 
+  // ALERTS
+  // messages
+  const SELECT_ACTIVITY_FIRST_MESSAGE = "Select an activity first! Scroll to the top.";
+  const SELECT_GRADE_LEVEL_GENERATE_MESSAGE = "Select a grade level first. This is used to generate age-appropriate slides.";
+
   // alerts
   const [verifyAlert, setVerifyAlert] = useState({ visible: false, message: "", tone: "warn" }); // verifying ID alert
   const [generatingAlert, setGeneratingAlert] = useState({ visible: false, message: "Generating...", tone: "neutral" }); // generating slides alert
   // persistent informational alert below the slides button explaining how to use it
-  const [slidesButtonInfoAlert, setSlidesButtonInfoAlert] = useState({ message: "Select an activity to generate slides." });
+  const [slidesButtonInfoAlert, setSlidesButtonInfoAlert] = useState({ message: SELECT_ACTIVITY_FIRST_MESSAGE });
   const [collaborationLinkAlert, setCollaborationLinkAlert] = useState({ visible: false, message: "", tone: "warn" }); // collaboration link validatoin
   const [templateLinkAlert, setTemplateLinkAlert] = useState({ visible: false, message: "", tone: "warn" }); // brand template link validation
   const [publicLinkAlert, setPublicLinkAlert] = useState({ visible: false, message: "", tone: "warn" }); // public link validation
-  const [createVariationInfoAlert, setCreateVariationInfoAlert] = useState({ visible: true, message: "Select an activity to create a variation.", tone: "warn" }); // info for create variation button
+  const [createVariationInfoAlert, setCreateVariationInfoAlert] = useState({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE, tone: "warn" }); // info for create variation button
   const [createVariationResultAlert, setCreateVariationResultAlert] = useState({ visible: false, message: "", tone: "" }); // error alert for if create variation fails
-  const [updateSlidesInfoAlert, setUpdateSlidesInfoAlert] = useState({ visible: true, message: "Select an activity to update its slide links." }); // info for update slides button
+  const [updateSlidesInfoAlert, setUpdateSlidesInfoAlert] = useState({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE }); // info for update slides button
 
   /* handlers for app element interaction */
 
@@ -354,6 +411,66 @@ export const App = () => {
     }
   }
 
+  async function handleUpdateActivityButton() {
+    if (!selectedActivity._id) {
+      console.error("No activity selected.");
+      return;
+    }
+  
+    try {
+      // Step 1: Process and upload the PDF
+      const pdfData = await uploadPdf(selectedActivity._id, selectedActivity.title);
+  
+      // Step 2: Prepare the request body for updating the activity
+      const requestBody = {
+        activityId: selectedActivity._id,
+        userID: currentUser.id,
+        slides: {
+          pdf: {
+            name: pdfData.pdfName,
+            source: pdfData.pdfUrl,
+            thumbnail: pdfData.thumbnailUrl,
+          },
+          slideUrl: publicViewLink,
+          editableSlideUrl: templateLink,
+          collaborationUrl: collaborationLink,
+        },
+      };
+  
+      // Step 3: Make the API call to update the activity
+      const response = await fetch(`${API_URL}/updateActivitySlides`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error updating activity:", errorData);
+        setUpdateSlidesInfoAlert({
+          visible: true,
+          message: `Error updating slides: ${errorData?.error?.message ?? "Unknown error"}`,
+        });
+        return;
+      }
+  
+      const result = await response.json();
+      console.log("Slides updated successfully:", result);
+      setUpdateSlidesInfoAlert({
+        visible: true,
+        message: "Slides updated successfully!",
+      });
+    } catch (error) {
+      console.error("Unexpected error updating slides:", error);
+      setUpdateSlidesInfoAlert({
+        visible: true,
+        message: "An unexpected error occurred while updating slides.",
+      });
+    }
+  }
+  
 
   async function handleCreateVariationButton() {
     setIsCreatingVariation(true); // disable normal button and alert updates
@@ -362,58 +479,24 @@ export const App = () => {
 
     try {
 
-      // export PDF with Canva Connect API
-      const export_blob = await requestExport({ "acceptedFileTypes": ["pdf_standard"] });
-      if (export_blob.status === "aborted") {
-        throw new Error("Canva PDF export was aborted");
-      }
-
-      console.log("export_blob:", export_blob);
-      const canvaExportBlobUrl = export_blob.exportBlobs[0].url;
-
-      // Upload to Firebase using backend
-      const uploadPdfResponse = await fetch(API_URL + '/uploadPdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          exportBlobUrl: canvaExportBlobUrl,
-          activityId: selectedActivity._id,
-          activityName: selectedActivity.title,
-        })
-      });
-
-
-      if (!uploadPdfResponse.ok) {
-        const errorData = await uploadPdfResponse.json();
-        setCreateVariationResultAlert({
-          visible: true,
-          tone: "warn",
-          message: `Error uploading PDF: ${errorData?.message ?? "Unknown error"}`
-        });
-        console.error("Error uploading PDF:", errorData);
-        return;
-      }
-
-      const pdfData = await uploadPdfResponse.json();
+      const pdfData = await uploadPdf(selectedActivity._id, selectedActivity.title);
       console.log("PDF uploaded successfully:", pdfData);
 
       // Step 2: Use the uploaded PDF details to create the variation
       const requestBody = {
         activityId: selectedActivity._id,
         ageGroup: [selectedAgeGroupIndex],
-        userID: currentUser.id, 
-        inheritCreatorID: inheritCreatorIdInput, 
-        variation: variationDescription, 
+        userID: currentUser.id,
+        inheritCreatorID: inheritCreatorIdInput,
+        variation: variationDescription,
         slides: {
           publicViewLink: publicViewLink,
           collaborationLink: collaborationLink,
           templateLink: templateLink,
           pdf: {
-            name: pdfData.pdfName, 
-            source: pdfData.pdfUrl, 
-            thumbnail: pdfData.thumbnailUrl, 
+            name: pdfData.pdfName,
+            source: pdfData.pdfUrl,
+            thumbnail: pdfData.thumbnailUrl,
           },
         },
       };
@@ -584,7 +667,7 @@ export const App = () => {
       identifyCanvaLinkType(publicViewLink) === 'public view';
 
     if (selectedActivity._id == "") {
-      setCreateVariationInfoAlert({ visible: true, message: "Select an activity to create a variation.", tone: "warn" });
+      setCreateVariationInfoAlert({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE, tone: "warn" });
       setCreateVariationButton({ disabled: true, message: "Create variation" });
     } else if (!multipleGradesInSelectedActivity) {
       setCreateVariationInfoAlert({ visible: true, message: "The selected activity only has one age group. Find the parent activity to create a variation.", tone: "warn" });
@@ -606,7 +689,7 @@ export const App = () => {
   useEffect(() => {
     if (selectedActivity._id == "") {
       setUpdateSlidesButton({ disabled: true, message: "Update slide links" });
-      setUpdateSlidesInfoAlert({ visible: true, message: "Select an activity to update its slide links." });
+      setUpdateSlidesInfoAlert({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE });
     } else {
       setUpdateSlidesButton({ disabled: false, message: "Update slide links for selected activity" });
       setUpdateSlidesInfoAlert({ visible: false, message: "" });
@@ -618,10 +701,10 @@ export const App = () => {
     if (!slideGenerationInProgress) {
       if (selectedActivity._id == "") {
         setGenerateSlidesButton({ disabled: true, message: "Generate slides" });
-        setSlidesButtonInfoAlert({ message: "Select an activity to generate slides." });
+        setSlidesButtonInfoAlert({ message: SELECT_ACTIVITY_FIRST_MESSAGE });
       } else if (selectedActivity._id != "" && selectedAgeGroupIndex == -1) {
         setGenerateSlidesButton({ disabled: true, message: "Generate slides for selected activity" });
-        setSlidesButtonInfoAlert({ message: "Select a grade level to generate slides for the selected activity." });
+        setSlidesButtonInfoAlert({ message: SELECT_GRADE_LEVEL_GENERATE_MESSAGE });
       } else if (selectedActivity._id != "" && selectedAgeGroupIndex != -1) {
         setGenerateSlidesButton({ disabled: false, message: `Generate slides for ${gradeLevels[selectedAgeGroupIndex]}` });
         setSlidesButtonInfoAlert({ message: "If you interact with Canva while slides are generating, they may generate out of order." });
@@ -648,22 +731,22 @@ export const App = () => {
         <CheckboxGroup defaultValue={["generate", "create"]}
           options={[
             {
-              label: 'Generate slides for the activity for a new grade level based on the lesson plan embedded in the activity',
+              label: 'Generate age-appropriate slides based on activity instructions',
               value: 'generate'
             },
             {
-              label: 'Update the slide information for the selected activity (live Canva links and static PDF copy) in the Kikori app',
+              label: 'Update the slides field of an existing activity in the Kikori database',
               value: 'update',
               description: "Not implemented yet!",
               disabled: true
             },
             {
-              label: 'Create a variation of the activity in the Kikori app for the selected grade level using this slide deck',
+              label: 'Create a variation of an activity with new slides in the Kikori database',
               value: 'create',
             }
           ]}
         />
-        <Text variant="bold" tone="tertiary">Copy an activity ID from the Kikori app or admin panel and enter it into the text box to get started!</Text>
+        <Text variant="bold" tone="tertiary">Copy an activity ID from the Kikori app or admin panel to get started!</Text>
 
         <FormField
           control={(props) => <TextInput
@@ -674,7 +757,7 @@ export const App = () => {
             onChange={setActivityIdInput} {...props}
           />}
           label="Select Activity (by ID)"
-          description="This will fetch the selected activity from the Kikori database so Canva can interact with it."
+          description="This will fetch the activity with the given ID from the Kikori database so Canva can interact with it."
         />
 
         <>
@@ -713,15 +796,34 @@ export const App = () => {
 
         <Text size="large" variant="bold">Generate Slides</Text>
 
-        <Text>Select a grade level to generate an age-appropriate slide deck for the activity based on the lesson plan!</Text>
-        <Text>Currently, this will always generate slides for Play, Reflect, Connect, AND Grow. More options will be added eventually.</Text>
-        <Text size="small">The slide deck is generated using ChatGPT. Review all slides carefully.</Text>
-
+        <Text>Select a grade level to generate an age-appropriate slide deck for the activity!</Text>
+        <Text>Slides are based on the instructions in the activity you selected above.</Text>
         <SegmentedControl
           options={gradeLevelSelectorOptions}
           value={selectedAgeGroupIndex}
           onChange={setSelectedAgeGroupIndex}
         />
+
+        <Text size="large">Slide Format</Text>
+        <CheckboxGroup defaultValue={["full"]}
+          options={[
+            {
+              label: 'Full Activity: PLAY, REFLECT, CONNECT, GROW slides',
+              value: 'full',
+
+            },
+            {
+              label: 'Greeting: PLAY slide only',
+              value: 'greeting',
+              description: "Not implemented yet!",
+              disabled: true
+            }
+          ]}
+        />
+
+        <Alert tone="info">The slide deck is generated using ChatGPT. Review all slides carefully.</Alert>
+
+
 
         <Button variant="primary" disabled={generateSlidesButton.disabled} onClick={handleGenerateSlidesButton} stretch>
           {generateSlidesButton.message}
@@ -751,17 +853,10 @@ export const App = () => {
           {slidesButtonInfoAlert.message}
         </Alert>
 
-        <Text size="large" variant="bold">Upate Kikori Activity Database</Text>
+        <Text size="large" variant="bold">Update Kikori Activity Database</Text>
 
-        <Text>Enter the collaboration and brand template links to update the slide links in the activity or create a new variation of it.</Text>
-        <Text size="small">
-          Various checks will be performed before creating a variation or updating an activity.
-          This app won't let you accidentally corrupt the database.
-        </Text>
+        <Text>Copy these links from the share menu. These links allow Kikori users to access the slides.</Text>
 
-        <Text size="small">
-          Copy these links from the share menu. They cannot be generated automatically, unfortunately. (The PDF can.)
-        </Text>
 
         <FormField
           control={(props) => <TextInput
@@ -814,18 +909,27 @@ export const App = () => {
           </Alert>
         )}
 
-        <Text
-          alignment="start"
-          capitalization="default"
-          size="medium"
-          variant="regular"
-        >
-          Click this button to update the selected activity! The new collaboration and brand template links will be entered into the activity in the database.
-        </Text>
+        <Alert tone="info">
+          Various checks are performed before updating the Kikori database.
+          This app won't let you accidentally corrupt the database.
+        </Alert>
 
-        <Button variant="secondary" disabled={/*updateSlidesButton.disabled*/ true} onClick={handleNothingClick} stretch>
-          {/*updateSlidesButton.message*/ "Update slides (not implemented)"}
+        <Text size="large">Update Slides Field of Existing Activity </Text>
+
+        <Text>Click this button to update the slide links in the selected activity.</Text>
+        <Text>This will NOT create a new activity; this updates the slides field of an existing activity. To create a new variation, scroll down.</Text>
+
+        <Button
+          variant="secondary"
+          disabled={updateSlidesButton.disabled}
+          onClick={handleUpdateActivityButton}
+          stretch
+        >
+          {updateSlidesButton.message}
         </Button>
+
+
+        <Alert tone="info">This updates ONLY the slides field of the selected activity.</Alert>
 
         <>
           {updateSlidesInfoAlert.visible && (
@@ -835,21 +939,18 @@ export const App = () => {
           )}
         </>
 
-        <Text
-          alignment="start"
-          capitalization="default"
-          size="medium"
-          variant="regular"
-        >
-          Select a grade level to create a new variation of the selected activity using this slide deck!
-          The variation will be created using the same process as the Kikori app.
-        </Text>
+        <Text size="large">Create New Variation with Slides</Text>
+        <Text>Select age groups and click this button to create an age group variation of the activity.</Text>
+        <Text>This WILL create a new activity, for the selected age group(s), that includes this slide deck. To update an existing activity, scroll up.</Text>
+
 
         <SegmentedControl
           options={gradeLevelSelectorOptions}
           value={selectedAgeGroupIndex}
           onChange={setSelectedAgeGroupIndex}
         />
+
+        <Switch defaultValue={false} disabled={true} label="Variation is for any K-5 classroom" description="This will set age group to PK-K, 1-2, and 3-5. Not implemented yet."></Switch>
 
         <>
           {createVariationInfoAlert.visible &&
@@ -859,11 +960,13 @@ export const App = () => {
           }
         </>
 
+
         <> {isCreatingVariation && (
           <LoadingIndicator size="medium" />
         )} </>
 
-    <FormField
+        {/*
+        <FormField
           control={(props) => <TextInput
             name="variationDescription"
             defaultValue="Age group variation"
@@ -873,6 +976,7 @@ export const App = () => {
           />}
           label="Variation description"
         />
+      */}
 
         <> {createVariationResultAlert.visible &&
           (<Alert tone={createVariationResultAlert.tone} onDismiss={() => { setCreateVariationResultAlert((p) => ({ ...p, visible: false })) }}>
@@ -884,6 +988,9 @@ export const App = () => {
         <Button variant="secondary" onClick={handleCreateVariationButton} disabled={createVariationButton.disabled} stretch>
           {createVariationButton.message}
         </Button>
+
+        <Alert tone="info">Instructions, title, and tags in the new variation will be copied from the original activity.</Alert>
+
 
       </Rows>
     </div>
