@@ -660,7 +660,6 @@ export const App = () => {
             {
               label: 'Create a variation of the activity in the Kikori app for the selected grade level using this slide deck',
               value: 'create',
-              description: "Note: the PDF copy of the slides must be uploaded manually at the moment."
             }
           ]}
         />
@@ -755,7 +754,6 @@ export const App = () => {
           Various checks will be performed before creating a variation or updating an activity.
           This app won't let you accidentally corrupt the database.
         </Text>
-        <Text tone="critical">Note: automatic PDF uploading is not configured yet. You must manually upload the PDF copy of the slides.</Text>
 
         <Text size="small">
           Copy these links from the share menu. They cannot be generated automatically, unfortunately. (The PDF can.)
@@ -821,7 +819,6 @@ export const App = () => {
           Click this button to update the selected activity! The new collaboration and brand template links will be entered into the activity in the database.
         </Text>
 
-        <Text tone="critical" size="small">Don't forget to upload the slide deck PDF manually!</Text>
         <Button variant="secondary" disabled={/*updateSlidesButton.disabled*/ true} onClick={handleNothingClick} stretch>
           {/*updateSlidesButton.message*/ "Update slides (not implemented)"}
         </Button>
@@ -862,6 +859,17 @@ export const App = () => {
           <LoadingIndicator size="medium" />
         )} </>
 
+    <FormField
+          control={(props) => <TextInput
+            name="variationDescription"
+            defaultValue="Age group variation"
+            value={variationDescription}
+            onChange={(e) => setVariationDescription(e)}
+            {...props}
+          />}
+          label="Variation description"
+        />
+
         <> {createVariationResultAlert.visible &&
           (<Alert tone={createVariationResultAlert.tone} onDismiss={() => { setCreateVariationResultAlert((p) => ({ ...p, visible: false })) }}>
             {createVariationResultAlert.message}
@@ -869,7 +877,6 @@ export const App = () => {
         }
         </>
 
-        <Text tone="critical" size="small">Don't forget to upload the slide deck PDF manually!</Text>
         <Button variant="secondary" onClick={handleCreateVariationButton} disabled={createVariationButton.disabled} stretch>
           {createVariationButton.message}
         </Button>
