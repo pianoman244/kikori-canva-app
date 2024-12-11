@@ -777,7 +777,7 @@ export const App = () => {
           <Text size="large" variant="bold">
             In this app, you can:
           </Text>
-          <CheckboxGroup defaultValue={["generate", "update", "create"]}
+          <CheckboxGroup defaultValue={["generate", "update"]}
             options={[
               {
                 label: 'Generate age-appropriate slides based on activity instructions',
@@ -786,11 +786,11 @@ export const App = () => {
               {
                 label: 'Update the slides field of an existing activity in the Kikori database',
                 value: 'update'
-              },
+              },/*
               {
                 label: 'Create a variation of an activity with new slides in the Kikori database',
                 value: 'create',
-              }
+              }*/
             ]}
           />
         </Box>
