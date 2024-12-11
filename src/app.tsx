@@ -12,7 +12,8 @@ import { getTemporaryUrl } from "@canva/asset";
 
 /* GLOBALS; REVIEW BEFORE DEPLOYING */
 const API_URL = "https://kikori-slides-api-08c1d2c0a600.herokuapp.com"; // Heroku API for database querying and ChatGPT calls
-const DEFAULT_ID = "66a16fe0a17a5ac6a7936c5d" // from sandbox database, parent variation
+// const DEFAULT_ID = "66a16fe0a17a5ac6a7936c5d" // from sandbox database, parent variation
+const DEFAULT_ID = "";
 // const DEFAULT_ID = "6NyRnQ4h0mqQne3KE1Nm" // from LIVE database
 // const DEFAULT_ID = "66deb0c59cb7a67d18c1ef29" // from sandbox database, test activity with one age group
 const INHERIT_CREATOR_ID_DEFAULT = true; // default creator ID for variations; chassenathan for now
@@ -716,7 +717,7 @@ export const App = () => {
       setUpdateSlidesInfoAlert({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE, tone: "warn" });
       setUpdateSlidesButton({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE });
     } else if (!linksValid) {
-      setUpdateSlidesInfoAlert({ visible: true, message: "Enter valid slide links to update activity.", tone: "warn" });
+      setUpdateSlidesInfoAlert({ visible: true, message: "Copy links from the \"Share\" menu into the text boxes above to update activity.", tone: "warn" });
       setUpdateSlidesButton({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE });
     } else {
       setUpdateSlidesInfoAlert({ visible: false, message: "", tone: "warn" });
@@ -935,7 +936,8 @@ export const App = () => {
 
         {/* Slide Link Entry Area */}
         <Text size="large" variant="bold">Update Kikori Activity Database</Text>
-        <Text>Copy these links from the share menu. These links allow Kikori users to access the slides.</Text>
+        <Text>Copy links from the "Share" menu (top-right of the Canva editor) into these text boxes. These links allow Kikori users to access the slides.</Text>
+        <Text variant="bold">The labels of each text box match the name of the link in the "Share" menu.</Text>
 
         <FormField
           control={(props) => <TextInput
@@ -998,7 +1000,7 @@ export const App = () => {
 
             <Text size="large" variant="bold">Update Slides of Existing Activity</Text>
             <Text>Click this button to update the slide links in the selected activity.</Text>
-            <Text>This will NOT create a new activity; this updates the slides of an existing activity. To create a new variation, scroll down.</Text>
+            <Text>This will NOT create a new activity; this updates the slides of an existing activity.</Text>
 
             <>
               {updateSlidesInfoAlert.visible && (
