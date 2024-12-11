@@ -1035,7 +1035,8 @@ export const App = () => {
 
 
 
-        {/* Create Variation Box */}
+        {/* Create Variation Box NOT USING FOR NOW
+        {(
         <Box
           background="neutralLow"
           borderRadius="large"
@@ -1081,7 +1082,8 @@ export const App = () => {
           </Rows>
         </Box>
         <Alert tone="info">Instructions, title, and tags in the new variation will be copied from the original activity.</Alert>
-
+        
+        */}
 
       </Rows>
     </div>
