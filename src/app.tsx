@@ -1026,7 +1026,7 @@ export const App = () => {
             </>
 
             <Button
-              variant="secondary"
+              variant="primary"
               disabled={updateSlidesButton.disabled}
               onClick={() => { disableAllResultAlerts(); setWaitingForPdfExport(true) }}
               loading={updateSlidesButton.loading}
