@@ -4,7 +4,7 @@ import * as styles from "styles/components.css";
 
 // canva SDK imports
 import {
-  Button, Rows, Title, Text, FormField, TextInput, CheckboxGroup, SegmentedControl, Alert, Badge, ProgressBar, LoadingIndicator, Switch, Box
+  Button, Rows, Title, Text, FormField, TextInput, CheckboxGroup, SegmentedControl, Alert, Badge, ProgressBar, Switch, Box
 } from "@canva/app-ui-kit";
 import { addPage, getCurrentPageContext, requestExport } from "@canva/design";
 import { getTemporaryUrl } from "@canva/asset";
@@ -94,29 +94,20 @@ function validateActivityData(activityData): boolean {
  * Helper function to process and upload a PDF of the input activity.
  * 
  * @param activityId - The ID of the activity.
- * @param activityName - The name of the activity.
- * @returns An object containing the uploaded PDF's details (`pdfName`, `pdfUrl`, `thumbnailUrl`).
+ * @param pdfName - The name of the activity.
+ * @returns An object containing the upload status (completed/aborted) and, if completed, PDF's details (`pdfName`, `pdfUrl`, `thumbnailUrl`).
  */
-async function uploadPdf(activityId: string, activityName: string) {
+async function uploadPdf(activityId: string, pdfName: string, canvaExportBlobUrl: string) {
   try {
-    // Step 1: Request a PDF export from Canva
-    const exportBlob = await requestExport({ acceptedFileTypes: ["pdf_standard"] });
-    if (exportBlob.status === "aborted") {
-      throw new Error("Canva PDF export was aborted.");
-    }
-    console.log("Export blob:", exportBlob);
-    const canvaExportBlobUrl = exportBlob.exportBlobs[0].url;
-
-    // Step 2: Upload the exported PDF to the backend
     const uploadPdfResponse = await fetch(`${API_URL}/uploadPdf`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        exportBlobUrl: canvaExportBlobUrl,
+        pdfUrl: canvaExportBlobUrl,
         activityId,
-        activityName,
+        pdfName
       }),
     });
 
@@ -130,7 +121,7 @@ async function uploadPdf(activityId: string, activityName: string) {
 
     // Return the uploaded PDF details
     return {
-      pdfName: pdfData.pdfName,
+      status: "completed",
       pdfUrl: pdfData.pdfUrl,
       thumbnailUrl: pdfData.thumbnailUrl,
     };
@@ -257,10 +248,10 @@ export const App = () => {
   const UPDATE_SLIDES_BUTTON_ACTIVITY_SELECTED_MESSAGE = "Update slide links";
 
   // states
-  const [verifyActivityIdButton, setVerifyActivityIdButton] = useState({ variant: "primary", text: "Fetch Activity by ID", disabled: false })
-  const [generateSlidesButton, setGenerateSlidesButton] = useState({ disabled: true, message: "Generate slides" }); // for enabling/disabling generate slides button
-  const [createVariationButton, setCreateVariationButton] = useState({ disabled: false, message: CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE }); // create variation button state
-  const [updateSlidesButton, setUpdateSlidesButton] = useState({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE }); // update slide links button state
+  const [verifyActivityIdButton, setVerifyActivityIdButton] = useState({ variant: "primary", text: "Fetch Activity by ID", disabled: false, loading: false })
+  const [generateSlidesButton, setGenerateSlidesButton] = useState({ disabled: true, message: "Generate slides", loading: false }); // for enabling/disabling generate slides button
+  const [createVariationButton, setCreateVariationButton] = useState({ disabled: false, message: CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE, loading: false }); // create variation button state
+  const [updateSlidesButton, setUpdateSlidesButton] = useState({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE, loading: false }); // update slide links button state
 
   // COMPUTED STATES
   type Activity = { _id: string; age_group: number[]; title: string; };
@@ -269,6 +260,8 @@ export const App = () => {
   const [slideGenerationInProgress, setSlideGenerationInProgress] = useState(false); // used to render progress bar
   const [slideGenerationProgressValue, setSlideGenerationProgressValue] = useState(0); // progress of progress bar
   const [interactingWithDatabase, setInteractingWithDatabase] = useState(false); // to disable buttons while interacting with database
+  const [waitingForPdfExport, setWaitingForPdfExport] = useState(false); // true while waiting for the user to click the export PDF button
+  const [pdfExportInProgress, setPdfExportInProgress] = useState(false); // true for like .8 seconds when Canva is exporting the PDF
 
   // ALERTS
   // messages
@@ -292,10 +285,11 @@ export const App = () => {
   async function disableAllResultAlerts() {
     setVerifyAlert({ visible: false, message: "", tone: "warn" });
     setUpdateSlidesResultAlert({ visible: false, message: "", tone: "" });
+    setUpdateSlidesInfoAlert({ visible: false, message: "", tone: "warn" });
+    setWaitingForPdfExport(false);
     setCreateVariationResultAlert({ visible: false, message: "", tone: "" });
     setGeneratingAlert({ visible: false, message: "", tone: "" });
   }
-
 
 
   /* HANDLERS for app element interaction */
@@ -406,29 +400,38 @@ export const App = () => {
     }
   }
 
-  // handler for "Update Slide Links" button
-  async function handleUpdateActivityButton() {
+  async function handleExportPDFButton() {
     try {
-      setInteractingWithDatabase(true);
-      disableAllResultAlerts(); // clear any existing alerts
+      // Step 1: request a PDF export from Canva 
+      // this opens up a menu for the user to select export options)
+      // the user can cancel the export, in which case the exportBlob will have a status of "aborted"
+      setWaitingForPdfExport(false);
+      setPdfExportInProgress(true);
 
-      // Show an alert that the update process has started
-      setUpdateSlidesInfoAlert({
-        visible: true,
-        tone: "neutral",
-        message: "Exporting PDF...",
-      });
+      const exportBlob = await requestExport({ acceptedFileTypes: ["pdf_standard"] });
+      if (exportBlob.status === "aborted") {
+        setUpdateSlidesResultAlert({
+          visible: true,
+          tone: "warn",
+          message: "PDF export cancelled. No updates were made. If this was a mistake, be sure to select \"Flatten PDF\" and then click \"Export\" when the PDF export menu appears.",
+        });
+        return;
+      }
 
-      // Step 1: Process and upload the PDF
-      const pdfData = await uploadPdf(selectedActivity._id, selectedActivity.title);
+      setPdfExportInProgress(false);
+      setInteractingWithDatabase(true); // disable normal button and alert updates
 
-      // Step 2: Prepare the request body for updating the activity
+      // Step 2: prepare to upload the PDF to the Kikori database
+      const canvaExportBlobUrl = exportBlob.exportBlobs[0].url; // extract url from exportBlob
+      const pdfName = selectedActivity.title;
+      const pdfData = await uploadPdf(selectedActivity._id, pdfName, canvaExportBlobUrl);
+
       const requestBody = {
         activityId: selectedActivity._id,
         userID: USER_ID_DEFAULT,
         slides: {
           pdf: {
-            name: pdfData.pdfName,
+            name: pdfName,
             source: pdfData.pdfUrl,
             thumbnail: pdfData.thumbnailUrl,
           },
@@ -438,14 +441,13 @@ export const App = () => {
         },
       };
 
-      // Show an alert that the API call is being made
       setUpdateSlidesInfoAlert({
         visible: true,
         tone: "neutral",
         message: "Updating slides in the Kikori database...",
       });
 
-      // Step 3: Make the API call to update the activity
+      // Step 3: make the API call to do the upload
       const response = await fetch(`${API_URL}/updateActivitySlides`, {
         method: "POST",
         headers: {
@@ -484,6 +486,7 @@ export const App = () => {
         message: "An unexpected error occurred while updating slides. Please try again.",
       });
     } finally {
+      setWaitingForPdfExport(false);
       setInteractingWithDatabase(false);
     }
   }
@@ -502,7 +505,7 @@ export const App = () => {
         message: "Exporting PDF...",
       });
 
-      const pdfData = await uploadPdf(selectedActivity._id, selectedActivity.title);
+      const pdfData = await uploadPdf(selectedActivity._id, selectedActivity.title, "test.url");
       console.log("PDF uploaded successfully:", pdfData);
 
       // Step 2: Use the uploaded PDF details to create the variation
@@ -517,7 +520,7 @@ export const App = () => {
           collaborationLink: collaborationLink,
           templateLink: templateLink,
           pdf: {
-            name: pdfData.pdfName,
+            name: selectedActivity.title, // FIX THIS
             source: pdfData.pdfUrl,
             thumbnail: pdfData.thumbnailUrl,
           },
@@ -567,19 +570,19 @@ export const App = () => {
     console.log(draft);
     console.log(helpers);
   }
-
+ 
   // print all elements on the page using the openDesign function (also for getting my bearings)
   async function printElementsButton() {
     openDesign({ type: "current_page" }, async (draft, { elementBuilder }) => {
       draft.page.elements.forEach((element, index) => {
         console.log(index, element);
       });
-
+ 
       if (draft.page.type !== "fixed") {
         console.log("skipping");
         return;
       }
-
+ 
       // Inserting a new rectangle element using list methods
       const newRect = elementBuilder.createRectElement({
         stroke: {"weight": 1, "color": {"type": "solid", "color": "#FFFFFF"}},
@@ -603,16 +606,16 @@ export const App = () => {
       
     });
   }
-
+ 
   // print the element that was just clicked and some details about it
   async function handleClick() {
     if (!isElementSelected) {
       console.log("no element selected");
       return;
     }
-
+ 
     const draft = await currentSelection.read();
-
+ 
     for (const content of draft.contents) {
       const { url } = await getTemporaryUrl({
         type: "image",
@@ -621,7 +624,7 @@ export const App = () => {
       console.log(url);
     }
   }
-
+ 
   // placeholder
   async function handleNothingClick() {
     console.log("nothing click");
@@ -691,20 +694,20 @@ export const App = () => {
     }
 
     if (interactingWithDatabase || slideGenerationInProgress) {
-      setVerifyActivityIdButton({ disabled: true, variant: "secondary", text: "Talking to Kikori backend..." });
-      setUpdateSlidesButton({ disabled: true, message: "Talking to Kikori backend..." });
-      setCreateVariationButton({ disabled: true, message: "Talking to Kikori backend..." });
-      setGenerateSlidesButton({ disabled: true, message: "Talking to Kikori backend..." });
+      setVerifyActivityIdButton({ disabled: true, variant: "secondary", text: "Talking to Kikori backend...", loading: true });
+      setUpdateSlidesButton({ disabled: true, message: "Talking to Kikori backend...", loading: true });
+      setCreateVariationButton({ disabled: true, message: "Talking to Kikori backend...", loading: true });
+      setGenerateSlidesButton({ disabled: true, message: "Talking to Kikori backend...", loading: true });
       return
     }; // disable all buttons if interacting with database or generating slides; alerts handled elsewhere
 
     // verify activity ID button and input logic
     if (isActivitySelected) {
       setActivityIdInputDisabled(true);
-      setVerifyActivityIdButton({ variant: "secondary", disabled: false, text: VERIFY_BUTTON_ACTIVITY_SELECTED_MESSAGE });
+      setVerifyActivityIdButton({ variant: "secondary", disabled: false, text: VERIFY_BUTTON_ACTIVITY_SELECTED_MESSAGE, loading: false });
     } else {
       setActivityIdInputDisabled(false);
-      setVerifyActivityIdButton({ variant: "primary", disabled: false, text: VERIFY_BUTTON_NO_ACTIVITY_SELECTED_MESSAGE });
+      setVerifyActivityIdButton({ variant: "primary", disabled: false, text: VERIFY_BUTTON_NO_ACTIVITY_SELECTED_MESSAGE, loading: false });
     }
 
     const multipleGradesInSelectedActivity = selectedActivity.age_group.length > 1;
@@ -712,54 +715,62 @@ export const App = () => {
       identifyCanvaLinkType(templateLink) === 'template' &&
       identifyCanvaLinkType(publicViewLink) === 'public view';
 
-    // Update activity slides logic
-    if (!isActivitySelected) {
-      setUpdateSlidesInfoAlert({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE, tone: "warn" });
-      setUpdateSlidesButton({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE });
-    } else if (!linksValid) {
-      setUpdateSlidesInfoAlert({ visible: true, message: "Copy links from the \"Share\" menu into the text boxes above to update activity.", tone: "warn" });
-      setUpdateSlidesButton({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE });
+    // Update activity button logic
+    if (waitingForPdfExport) {
+      setUpdateSlidesInfoAlert({ visible: true, message: "Waiting for user to export PDF...", tone: "neutral" });
+      setUpdateSlidesButton({ disabled: true, message: "Waiting for export", loading: true });
+    } else if (pdfExportInProgress) {
+      setUpdateSlidesInfoAlert({ visible: true, message: "Waiting for Canva to export PDF...", tone: "neutral" });
+      setUpdateSlidesButton({ disabled: true, message: "Exporting PDF...", loading: true });
     } else {
-      setUpdateSlidesInfoAlert({ visible: false, message: "", tone: "warn" });
-      setUpdateSlidesButton({ disabled: false, message: UPDATE_SLIDES_BUTTON_ACTIVITY_SELECTED_MESSAGE });
+      if (!isActivitySelected) {
+        setUpdateSlidesInfoAlert({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE, tone: "warn" });
+        setUpdateSlidesButton({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE, loading: false });
+      } else if (!linksValid) {
+        setUpdateSlidesInfoAlert({ visible: true, message: "Copy links from the \"Share\" menu into the text boxes above to update activity.", tone: "warn" });
+        setUpdateSlidesButton({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE, loading: false });
+      } else {
+        setUpdateSlidesInfoAlert({ visible: false, message: "", tone: "warn" });
+        setUpdateSlidesButton({ disabled: false, message: UPDATE_SLIDES_BUTTON_ACTIVITY_SELECTED_MESSAGE, loading: false });
+      }
     }
 
     // Create variation and update activity slides logic
     if (!isActivitySelected) {
       setCreateVariationInfoAlert({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE, tone: "warn" });
-      setCreateVariationButton({ disabled: true, message: CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE });
+      setCreateVariationButton({ disabled: true, message: CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE, loading: false });
 
     } else if (!linksValid) {
       setCreateVariationInfoAlert({ visible: true, message: "Enter valid slide links to create a variation.", tone: "warn" });
-      setCreateVariationButton({ disabled: true, message: `Create variation for ${gradeLevels[selectedAgeGroupIndex]}` });
+      setCreateVariationButton({ disabled: true, message: `Create variation for ${gradeLevels[selectedAgeGroupIndex]}`, loading: false });
 
     } else if (!multipleGradesInSelectedActivity) {
       setCreateVariationInfoAlert({ visible: true, message: "The selected activity only has one age group. Find the parent activity to create a variation.", tone: "warn" });
-      setCreateVariationButton({ disabled: true, message: CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE });
+      setCreateVariationButton({ disabled: true, message: CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE, loading: false });
     } else if (selectedAgeGroupIndex == -1) {
       setCreateVariationInfoAlert({ visible: true, message: "Select a grade level to create a variation.", tone: "warn" });
-      setCreateVariationButton({ disabled: true, message: CREATE_VARIATION_BUTTON_ACTIVITY_SELECTED_DEFAULT_MESSAGE });
+      setCreateVariationButton({ disabled: true, message: CREATE_VARIATION_BUTTON_ACTIVITY_SELECTED_DEFAULT_MESSAGE, loading: false });
     } else {
       setCreateVariationInfoAlert({ visible: false, message: "", tone: "warn" });
-      setCreateVariationButton({ disabled: false, message: `Create variation for ${gradeLevels[selectedAgeGroupIndex]}` });
+      setCreateVariationButton({ disabled: false, message: `Create variation for ${gradeLevels[selectedAgeGroupIndex]}`, loading: false });
 
     }
 
     // Generate slides logic
     if (!slideGenerationInProgress) {
       if (!isActivitySelected) {
-        setGenerateSlidesButton({ disabled: true, message: "Generate slides" });
+        setGenerateSlidesButton({ disabled: true, message: "Generate slides", loading: false });
         setSlidesButtonInfoAlert({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE });
       } else if (selectedAgeGroupIndex == -1) {
-        setGenerateSlidesButton({ disabled: true, message: "Generate slides for selected activity" });
+        setGenerateSlidesButton({ disabled: true, message: "Generate slides for selected activity", loading: false });
         setSlidesButtonInfoAlert({ visible: true, message: SELECT_GRADE_LEVEL_GENERATE_MESSAGE });
       } else {
-        setGenerateSlidesButton({ disabled: false, message: `Generate slides for ${gradeLevels[selectedAgeGroupIndex]}` });
+        setGenerateSlidesButton({ disabled: false, message: `Generate slides for ${gradeLevels[selectedAgeGroupIndex]}`, loading: false });
         setSlidesButtonInfoAlert({ visible: false, message: "If you interact with Canva while slides are generating, they may generate out of order." });
       }
     }
 
-  }, [isActivitySelected, selectedAgeGroupIndex, selectedActivity, publicViewLink, collaborationLink, templateLink, interactingWithDatabase, slideGenerationInProgress]);
+  }, [isActivitySelected, selectedAgeGroupIndex, selectedActivity, publicViewLink, collaborationLink, templateLink, interactingWithDatabase, slideGenerationInProgress, waitingForPdfExport]);
 
   return (
     <div className={styles.scrollContainer}>
@@ -828,7 +839,7 @@ export const App = () => {
           )}
         </>
 
-        <Button variant={verifyActivityIdButton.variant} disabled={verifyActivityIdButton.disabled || activityIdInput.length == 0} onClick={handleVerifyActivityID} stretch>
+        <Button variant={verifyActivityIdButton.variant} loading={verifyActivityIdButton.loading} disabled={verifyActivityIdButton.disabled || activityIdInput.length == 0} onClick={handleVerifyActivityID} stretch>
           {verifyActivityIdButton.text}
         </Button>
 
@@ -845,7 +856,7 @@ export const App = () => {
 
 
 
-       {/* Generate Slides Box */}
+        {/* Generate Slides Box */}
         <Box background="neutralLow" borderRadius="large" padding="2u">
           <Rows spacing="1.5u">
 
@@ -894,11 +905,7 @@ export const App = () => {
             />
             <Text size="small">Design selection not implemented yet.</Text>
 
-            <> {interactingWithDatabase && (
-              <LoadingIndicator size="medium" />
-            )} </>
-
-            <Button variant="primary" disabled={generateSlidesButton.disabled} onClick={handleGenerateSlidesButton} stretch>
+            <Button variant="primary" disabled={generateSlidesButton.disabled} loading={generateSlidesButton.loading} onClick={handleGenerateSlidesButton} stretch>
               {generateSlidesButton.message}
             </Button>
 
@@ -1018,18 +1025,32 @@ export const App = () => {
               )}
             </>
 
-            <> {interactingWithDatabase && (
-              <LoadingIndicator size="medium" />
-            )} </>
-
             <Button
               variant="secondary"
               disabled={updateSlidesButton.disabled}
-              onClick={handleUpdateActivityButton}
+              onClick={() => { disableAllResultAlerts(); setWaitingForPdfExport(true) }}
+              loading={updateSlidesButton.loading}
               stretch
             >
               {updateSlidesButton.message}
             </Button>
+
+            {waitingForPdfExport && (<Alert tone="critical">
+              Canva will now generate a static PDF of the slide deck for Kikori. Make sure to select "Flatten PDF" on the next menu to avoid formatting and file size issues.
+
+              Click "Export PDF" to proceed.
+            </Alert>)}
+
+            {waitingForPdfExport && (
+              <Button variant="secondary" onClick={handleExportPDFButton}>
+                Export PDF
+              </Button>
+            )}
+
+            {waitingForPdfExport && (
+              <Button variant="tertiary" onClick={() => setWaitingForPdfExport(false)}>
+                Cancel Update Slides
+              </Button>)}
 
           </Rows>
         </Box>
@@ -1065,10 +1086,6 @@ export const App = () => {
                 </Alert>)
               }
             </>
-
-            <> {interactingWithDatabase && (
-              <LoadingIndicator size="medium" />
-            )} </>
 
             <> {createVariationResultAlert.visible &&
               (<Alert tone={createVariationResultAlert.tone} onDismiss={() => { setCreateVariationResultAlert((p) => ({ ...p, visible: false })) }}>
