@@ -253,10 +253,10 @@ export const App = () => {
   // messages
   const VERIFY_BUTTON_NO_ACTIVITY_SELECTED_MESSAGE = "Fetch Activity by ID";
   const VERIFY_BUTTON_ACTIVITY_SELECTED_MESSAGE = "Use other activity";
-  const CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE = "Create variation";
-  const CREATE_VARIATION_BUTTON_ACTIVITY_SELECTED_DEFAULT_MESSAGE = "Create variation for selected activity";
-  const UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE = "Update slide links";
-  const UPDATE_SLIDES_BUTTON_ACTIVITY_SELECTED_MESSAGE = "Update slide links";
+  const CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE = "Make variation and add these slides";
+  const CREATE_VARIATION_BUTTON_ACTIVITY_SELECTED_DEFAULT_MESSAGE = "Make variation and add these slides";
+  const UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE = "Update slides";
+  const UPDATE_SLIDES_BUTTON_ACTIVITY_SELECTED_MESSAGE = "Update slides of selected activity";
 
   // states
   const [verifyActivityIdButton, setVerifyActivityIdButton] = useState({ variant: "primary", text: "Fetch Activity by ID", disabled: false, loading: false })
@@ -791,11 +791,10 @@ export const App = () => {
     if (!isActivitySelected) {
       setCreateVariationInfoAlert({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE, tone: "warn" });
       setCreateVariationButton({ disabled: true, message: CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE, loading: false });
-
     } else if (!linksValid) {
       setCreateVariationInfoAlert({ visible: true, message: "Enter valid slide links to create a variation.", tone: "warn" });
-      setCreateVariationButton({ disabled: true, message: `Create variation for ${gradeLevels[selectedAgeGroupIndex]}`, loading: false });
-
+      if (selectedAgeGroupIndex != -1) setCreateVariationButton({ disabled: true, message: `Make ${gradeLevels[selectedAgeGroupIndex]} variation & add these slides`, loading: false });
+      else setCreateVariationButton({ disabled: true, message: CREATE_VARIATION_BUTTON_ACTIVITY_SELECTED_DEFAULT_MESSAGE, loading: false });
     } else if (!multipleGradesInSelectedActivity) {
       setCreateVariationInfoAlert({ visible: true, message: "The selected activity only has one age group. Find the parent activity to create a variation.", tone: "warn" });
       setCreateVariationButton({ disabled: true, message: CREATE_VARIATION_BUTTON_DEFAULT_MESSAGE, loading: false });
@@ -807,7 +806,7 @@ export const App = () => {
       setCreateVariationButton({ disabled: true, message: "Exporting PDF...", loading: true });
     } else {
       setCreateVariationInfoAlert({ visible: false, message: "", tone: "warn" });
-      setCreateVariationButton({ disabled: false, message: `Create variation for ${gradeLevels[selectedAgeGroupIndex]}`, loading: false });
+      setCreateVariationButton({ disabled: false, message: `Make ${gradeLevels[selectedAgeGroupIndex]} variation & add these slides`, loading: false });
 
     }
 
