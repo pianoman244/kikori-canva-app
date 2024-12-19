@@ -1,5 +1,5 @@
 // general imports
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as styles from "styles/components.css";
 
 // canva SDK imports
@@ -24,16 +24,27 @@ const USER_ID_DEFAULT = "GEvIbLpTT4hgw135BioFr9njDGB2"; // default user ID for u
 // helper function to validate links and determine their type
 type CanvaLinkType = 'collaboration' | 'public view' | 'template' | 'unknown';
 function identifyCanvaLinkType(url: string): CanvaLinkType {
-  if (/\/edit\?/.test(url)) {
+
+  // https://www.canva.com/design/DAGZrV7X9o0/h-XbbcxcIEKdCtozSeOIzg/edit
+  if (/^https:\/\/www\.canva\.com\/design\/(?:[^/]+)\/(?:[^/]+)\/.*edit.*$/.test(url)) {
     return 'collaboration';
-  } else if (/\/view\?.*mode=preview/.test(url)) {
-    return 'template';
-  } else if (/\/view\?(?!.*mode=preview)/.test(url)) {
+
+    // https://www.canva.com/design/DAGZrV7X9o0/BMMMU4eqBAqsEZgKf8HoFg/view?utm_content=DAGZrV7X9o0&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h3db0a2ce36
+  } else if (/^https:\/\/www\.canva\.com\/design\/(?:[^/]+)\/(?:[^/]+)\/.*utm_source=uniquelinks.*$/.test(url)) {
     return 'public view';
+
+    // https://www.canva.com/design/DAGZrV7X9o0/s6THBP-N1rJP47AH-EyaJA/view?utm_content=DAGZrV7X9o0&utm_campaign=designshare&utm_medium=link&utm_source=publishsharelink&mode=preview
+  } else if (/^https:\/\/www\.canva\.com\/design\/(?:[^/]+)\/(?:[^/]+)\/.*utm_source=publishsharelink.*$/.test(url)) {
+    return 'template';
+
+
+
   } else {
     return 'unknown';
   }
 }
+
+// 
 
 // available grade levels to select with the SegmentedSelect
 const gradeLevelSelectorOptions = [
@@ -254,14 +265,16 @@ export const App = () => {
   const [updateSlidesButton, setUpdateSlidesButton] = useState({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE, loading: false }); // update slide links button state
 
   // COMPUTED STATES
-  type Activity = { _id: string; age_group: number[]; title: string; };
-  const [selectedActivity, setSelectedActivity] = useState<Activity>({ _id: "", age_group: [], title: "" }); // set when activity is verified
+  type SelectedActivity = { _id: string; age_group: number[]; title: string; };
+  const [selectedActivity, setSelectedActivity] = useState<SelectedActivity>({ _id: "", age_group: [], title: "" }); // set when activity is verified
   const [isActivitySelected, setIsActivitySelected] = useState(false); // used to disable activity ID input
   const [slideGenerationInProgress, setSlideGenerationInProgress] = useState(false); // used to render progress bar
   const [slideGenerationProgressValue, setSlideGenerationProgressValue] = useState(0); // progress of progress bar
   const [interactingWithDatabase, setInteractingWithDatabase] = useState(false); // to disable buttons while interacting with database
   const [waitingForPdfExport, setWaitingForPdfExport] = useState(false); // true while waiting for the user to click the export PDF button
   const [pdfExportInProgress, setPdfExportInProgress] = useState(false); // true for like .8 seconds when Canva is exporting the PDF
+  const slideGenerationCanceled = useRef(false); // used to track if the user cancels slide generation
+  const slideGenerationAbortSignal = useRef<AbortController | null>(null); // used to abort the slide generation timeout if cancelled
 
   // ALERTS
   // messages
@@ -296,6 +309,8 @@ export const App = () => {
 
   // handler for "Verify activity ID" button
   async function handleVerifyActivityID() {
+    alert("Verify activity ID button pressed");
+
     disableAllResultAlerts(); // clear any existing alerts
     setInteractingWithDatabase(true); // disable normal button and alert updates
 
@@ -350,9 +365,12 @@ export const App = () => {
     try {
       disableAllResultAlerts(); // clear any existing alerts
       setGeneratingAlert({ visible: true, message: "Connecting to ChatGPT...", tone: "neutral" });
-      setSlideGenerationInProgress(true);
-      setSlideGenerationProgressValue(0);
 
+      // set up progress bar
+      setSlideGenerationInProgress(true);
+      setSlideGenerationProgressValue(10);
+
+      setInteractingWithDatabase(true); // pause everything while waiting for ChatGPT
       const sel_cycle = ["play", "reflect", "connect", "grow"];
       const response = await generateSlides(selectedActivity._id, gradeLevels[selectedAgeGroupIndex]);
 
@@ -360,8 +378,14 @@ export const App = () => {
         throw new Error("Invalid response format from generateSlides: " + JSON.stringify(response));
       }
 
+      setInteractingWithDatabase(false); // re-enable things; in particular, enable Cancel Generate Slides button
+
+      slideGenerationCanceled.current = false;
       setGeneratingAlert({ visible: true, message: "Generating slides...", tone: "neutral" });
-      setSlideGenerationProgressValue(25);
+
+      // set up aborting functionality for cancel button
+      slideGenerationAbortSignal.current = new AbortController();
+      const { signal } = slideGenerationAbortSignal.current;
 
       const deck = response.slides[0];
       console.log("Response: " + JSON.stringify(response));
@@ -372,6 +396,8 @@ export const App = () => {
       let completedSlides = 0;
 
       for (const section of sel_cycle) {
+        if (slideGenerationCanceled.current) throw new Error("slide generation cancelled by user"); // Stop if user cancels
+
         console.log(section);
         const slides = deck[section];
         if (!slides) continue; // Skip if section has no slides
@@ -381,10 +407,18 @@ export const App = () => {
           completedSlides += 1;
 
           // Update progress based on completed slides
-          setSlideGenerationProgressValue(Math.min(100, Math.floor(25 + (completedSlides / totalSlides) * 75)));
+          setSlideGenerationProgressValue(Math.min(100, Math.floor(35 + (completedSlides / totalSlides) * 65)));
 
           // Delay to simulate slide generation time (API only allows 3 page adds per 10 seconds)
-          await new Promise(resolve => setTimeout(resolve, 4000));
+          // delay is aborted instantly if user cancels slide generation
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(resolve, 4000);
+
+            signal.addEventListener('abort', () => {
+              clearTimeout(timeout);
+              reject(new Error('cancelled'));
+            });
+          });
         }
       }
 
@@ -392,39 +426,43 @@ export const App = () => {
       setGeneratingAlert({ visible: true, message: "Slides generated!", tone: "positive" });
 
     } catch (error) {
-      console.error("Error generating slides:", error);
-      setGeneratingAlert({ visible: true, message: "Error generating slides. Please try again.", tone: "warn" });
+      if (slideGenerationCanceled.current) {
+        setGeneratingAlert({ visible: true, message: "Slide generation cancelled.", tone: "warn" });
+      } else {
+        console.error("Error generating slides:", error);
+        setGeneratingAlert({ visible: true, message: "Error generating slides. Please try again.", tone: "warn" });
+      }
     } finally {
       setSlideGenerationInProgress(false);
       setSlideGenerationProgressValue(0);
     }
   }
 
-  async function handleExportPDFButton() {
+  async function handleUpdateSlidesButton() {
     try {
-      // Step 1: request a PDF export from Canva 
-      // this opens up a menu for the user to select export options)
-      // the user can cancel the export, in which case the exportBlob will have a status of "aborted"
-      setWaitingForPdfExport(false);
-      setPdfExportInProgress(true);
-
+      setPdfExportInProgress(true); // show the PDF export alert
       const exportBlob = await requestExport({ acceptedFileTypes: ["pdf_standard"] });
+
+      setUpdateSlidesInfoAlert({ "visible": true, "tone": "neutral", "message": "Waiting for Canva PDF export..." });
+
       if (exportBlob.status === "aborted") {
         setUpdateSlidesResultAlert({
           visible: true,
           tone: "warn",
-          message: "PDF export cancelled. No updates were made. If this was a mistake, be sure to select \"Flatten PDF\" and then click \"Export\" when the PDF export menu appears.",
+          message: "PDF export cancelled. No updates were made. If this was a mistake, click \"Export\" when the PDF export menu appears.",
         });
         return;
       }
 
-      setPdfExportInProgress(false);
       setInteractingWithDatabase(true); // disable normal button and alert updates
+
+      setUpdateSlidesInfoAlert({ "visible": true, "tone": "neutral", "message": "Uploading PDF to Kikori..." });
 
       // Step 2: prepare to upload the PDF to the Kikori database
       const canvaExportBlobUrl = exportBlob.exportBlobs[0].url; // extract url from exportBlob
       const pdfName = selectedActivity.title;
       const pdfData = await uploadPdf(selectedActivity._id, pdfName, canvaExportBlobUrl);
+      setPdfExportInProgress(false); // hide the PDF export alert
 
       const requestBody = {
         activityId: selectedActivity._id,
@@ -485,28 +523,45 @@ export const App = () => {
         tone: "warn",
         message: "An unexpected error occurred while updating slides. Please try again.",
       });
+
     } finally {
-      setWaitingForPdfExport(false);
+      setPdfExportInProgress(false);
+      setUpdateSlidesInfoAlert({ visible: false, message: "", tone: "warn" });
       setInteractingWithDatabase(false);
     }
   }
 
+
   // handler for create variation button
   async function handleCreateVariationButton() {
-    setInteractingWithDatabase(true); // disable normal button and alert updates
     disableAllResultAlerts(); // clear any existing alerts
-    setCreateVariationInfoAlert({ visible: false, message: "", tone: "neutral" });
 
     try {
-      // Show an alert that the update process has started
-      setCreateVariationInfoAlert({
-        visible: true,
-        tone: "neutral",
-        message: "Exporting PDF...",
-      });
+      setPdfExportInProgress(true); // show the PDF export alert
+      const exportBlob = await requestExport({ acceptedFileTypes: ["pdf_standard"] });
 
-      const pdfData = await uploadPdf(selectedActivity._id, selectedActivity.title, "test.url");
-      console.log("PDF uploaded successfully:", pdfData);
+      setCreateVariationInfoAlert({ "visible": true, "tone": "neutral", "message": "Waiting for Canva PDF export..." });
+
+      if (exportBlob.status === "aborted") {
+        setCreateVariationResultAlert({
+          visible: true,
+          tone: "warn",
+          message: "PDF export cancelled. No updates were made. If this was a mistake, click \"Export\" when the PDF export menu appears.",
+        });
+        return;
+      }
+
+      setInteractingWithDatabase(true); // disable normal button and alert updates
+
+      setCreateVariationInfoAlert({ "visible": true, "tone": "neutral", "message": "Uploading PDF to Kikori..." });
+
+      // Step 2: prepare to upload the PDF to the Kikori database
+      const canvaExportBlobUrl = exportBlob.exportBlobs[0].url; // extract url from exportBlob
+      const pdfName = selectedActivity.title;
+      const pdfData = await uploadPdf(selectedActivity._id, pdfName, canvaExportBlobUrl);
+      setPdfExportInProgress(false); // hide the PDF export alert
+
+      setCreateVariationInfoAlert({ "visible": true, "tone": "neutral", "message": "Creating variation..." });
 
       // Step 2: Use the uploaded PDF details to create the variation
       const requestBody = {
@@ -560,6 +615,8 @@ export const App = () => {
         message: "Unexpected error occurred while creating variation. See logs."
       });
     } finally {
+      setPdfExportInProgress(false);
+      setUpdateSlidesInfoAlert({ visible: false, message: "", tone: "warn" });
       setInteractingWithDatabase(false); // re-enable button and alert updates
     }
   }
@@ -716,23 +773,18 @@ export const App = () => {
       identifyCanvaLinkType(publicViewLink) === 'public view';
 
     // Update activity button logic
-    if (waitingForPdfExport) {
-      setUpdateSlidesInfoAlert({ visible: true, message: "Waiting for user to export PDF...", tone: "neutral" });
-      setUpdateSlidesButton({ disabled: true, message: "Waiting for export", loading: true });
+    if (!isActivitySelected) {
+      setUpdateSlidesInfoAlert({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE, tone: "warn" });
+      setUpdateSlidesButton({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE, loading: false });
+    } else if (!linksValid) {
+      setUpdateSlidesInfoAlert({ visible: true, message: "Copy links from the \"Share\" menu into the text boxes above to update activity.", tone: "warn" });
+      setUpdateSlidesButton({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE, loading: false });
     } else if (pdfExportInProgress) {
       setUpdateSlidesInfoAlert({ visible: true, message: "Waiting for Canva to export PDF...", tone: "neutral" });
       setUpdateSlidesButton({ disabled: true, message: "Exporting PDF...", loading: true });
     } else {
-      if (!isActivitySelected) {
-        setUpdateSlidesInfoAlert({ visible: true, message: SELECT_ACTIVITY_FIRST_MESSAGE, tone: "warn" });
-        setUpdateSlidesButton({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE, loading: false });
-      } else if (!linksValid) {
-        setUpdateSlidesInfoAlert({ visible: true, message: "Copy links from the \"Share\" menu into the text boxes above to update activity.", tone: "warn" });
-        setUpdateSlidesButton({ disabled: true, message: UPDATE_SLIDES_BUTTON_DEFAULT_MESSAGE, loading: false });
-      } else {
-        setUpdateSlidesInfoAlert({ visible: false, message: "", tone: "warn" });
-        setUpdateSlidesButton({ disabled: false, message: UPDATE_SLIDES_BUTTON_ACTIVITY_SELECTED_MESSAGE, loading: false });
-      }
+      setUpdateSlidesInfoAlert({ visible: false, message: "", tone: "warn" });
+      setUpdateSlidesButton({ disabled: false, message: UPDATE_SLIDES_BUTTON_ACTIVITY_SELECTED_MESSAGE, loading: false });
     }
 
     // Create variation and update activity slides logic
@@ -750,6 +802,9 @@ export const App = () => {
     } else if (selectedAgeGroupIndex == -1) {
       setCreateVariationInfoAlert({ visible: true, message: "Select a grade level to create a variation.", tone: "warn" });
       setCreateVariationButton({ disabled: true, message: CREATE_VARIATION_BUTTON_ACTIVITY_SELECTED_DEFAULT_MESSAGE, loading: false });
+    } else if (pdfExportInProgress) {
+      setCreateVariationInfoAlert({ visible: true, message: "Waiting for Canva to export PDF...", tone: "neutral" });
+      setCreateVariationButton({ disabled: true, message: "Exporting PDF...", loading: true });
     } else {
       setCreateVariationInfoAlert({ visible: false, message: "", tone: "warn" });
       setCreateVariationButton({ disabled: false, message: `Create variation for ${gradeLevels[selectedAgeGroupIndex]}`, loading: false });
@@ -770,7 +825,7 @@ export const App = () => {
       }
     }
 
-  }, [isActivitySelected, selectedAgeGroupIndex, selectedActivity, publicViewLink, collaborationLink, templateLink, interactingWithDatabase, slideGenerationInProgress, waitingForPdfExport]);
+  }, [isActivitySelected, selectedAgeGroupIndex, selectedActivity, publicViewLink, collaborationLink, templateLink, interactingWithDatabase, slideGenerationInProgress, pdfExportInProgress]);
 
   return (
     <div className={styles.scrollContainer}>
@@ -789,20 +844,20 @@ export const App = () => {
           <Text size="large" variant="bold">
             In this app, you can:
           </Text>
-          <CheckboxGroup defaultValue={["generate", "update"]}
+          <CheckboxGroup defaultValue={["generate", "update", "create"]}
             options={[
               {
                 label: 'Generate age-appropriate slides based on activity instructions',
                 value: 'generate'
               },
               {
-                label: 'Update the slides field of an existing activity in the Kikori database',
+                label: 'Add/change slides of existing activity in the Kikori database',
                 value: 'update'
-              },/*
+              },
               {
-                label: 'Create a variation of an activity with new slides in the Kikori database',
+                label: 'Create a new age-group variation of an activity with the new slide deck',
                 value: 'create',
-              }*/
+              }
             ]}
           />
         </Box>
@@ -905,35 +960,46 @@ export const App = () => {
             />
             <Text size="small">Design selection not implemented yet.</Text>
 
-            <Button variant="primary" disabled={generateSlidesButton.disabled} loading={generateSlidesButton.loading} onClick={handleGenerateSlidesButton} stretch>
-              {generateSlidesButton.message}
-            </Button>
+            {!slideGenerationInProgress && (
+              <Button variant="primary" disabled={generateSlidesButton.disabled} loading={generateSlidesButton.loading} onClick={handleGenerateSlidesButton} stretch>
+                {generateSlidesButton.message}
+              </Button>
+            )}
 
-            {slidesButtonInfoAlert.visible && (
-              <Alert tone="warn">
-                {slidesButtonInfoAlert.message}
+            {slideGenerationInProgress && (
+              <Title alignment="center" size="small">
+                Generating slides
+              </Title>
+            )}
+
+            {slideGenerationInProgress && (
+              <ProgressBar
+                size="medium"
+                value={slideGenerationProgressValue}
+              />
+            )}
+
+            {slideGenerationInProgress && (
+              <Text alignment="center" tone="tertiary" size="small">
+                If you interact with slides while they are generating, they may generate out of order.
+              </Text>
+            )}
+
+            {(!slideGenerationInProgress && generatingAlert.visible) && (
+              <Alert
+                tone={generatingAlert.tone}
+                onDismiss={() => setGeneratingAlert((prevState) => ({ ...prevState, visible: false }))}
+              >
+                {generatingAlert.message}
               </Alert>
             )}
 
-            <>
-              {generatingAlert.visible && (
-                <Alert
-                  tone={generatingAlert.tone}
-                  onDismiss={() => setGeneratingAlert((prevState) => ({ ...prevState, visible: false }))}
-                >
-                  {generatingAlert.message}
-                </Alert>
-              )}
-            </>
-
-            <>
-              {slideGenerationInProgress && (
-                <ProgressBar
-                  size="medium"
-                  value={slideGenerationProgressValue}
-                />
-              )}
-            </>
+            {slideGenerationInProgress && (
+              <Button variant="secondary"
+                onClick={() => { slideGenerationAbortSignal.current?.abort(); slideGenerationCanceled.current = true }} disabled={interactingWithDatabase}>
+                Cancel Slide Generation
+              </Button>
+            )}
 
           </Rows>
         </Box>
@@ -948,6 +1014,24 @@ export const App = () => {
 
         <FormField
           control={(props) => <TextInput
+            name="collaborationLink"
+            value={collaborationLink}
+            onChange={(e) => setCollaborationLink(e)}
+            {...props}
+          />}
+          label="Collaboration link (aka 'edit link', or URL)"
+        />
+
+        {
+          collaborationLinkAlert.visible && (
+            <Alert tone={collaborationLinkAlert.tone} onClose={() => setCollaborationLinkAlert({ ...collaborationLinkAlert, visible: false })}>
+              {collaborationLinkAlert.message}
+            </Alert>
+          )
+        }
+
+        <FormField
+          control={(props) => <TextInput
             name="publicLink"
             value={publicViewLink}
             onChange={(e) => setPublicViewLink(e)}
@@ -956,11 +1040,13 @@ export const App = () => {
           label="Public view link"
         />
 
-        {publicLinkAlert.visible && (
-          <Alert tone={publicLinkAlert.tone} onClose={() => setPublicLinkAlert({ ...publicLinkAlert, visible: false })}>
-            {publicLinkAlert.message}
-          </Alert>
-        )}
+        {
+          publicLinkAlert.visible && (
+            <Alert tone={publicLinkAlert.tone} onClose={() => setPublicLinkAlert({ ...publicLinkAlert, visible: false })}>
+              {publicLinkAlert.message}
+            </Alert>
+          )
+        }
 
         <FormField
           control={(props) => <TextInput
@@ -972,27 +1058,14 @@ export const App = () => {
           label="Template link"
         />
 
-        {templateLinkAlert.visible && (
-          <Alert tone={templateLinkAlert.tone} onClose={() => setTemplateLinkAlert({ ...templateLinkAlert, visible: false })}>
-            {templateLinkAlert.message}
-          </Alert>
-        )}
+        {
+          templateLinkAlert.visible && (
+            <Alert tone={templateLinkAlert.tone} onClose={() => setTemplateLinkAlert({ ...templateLinkAlert, visible: false })}>
+              {templateLinkAlert.message}
+            </Alert>
+          )
+        }
 
-        <FormField
-          control={(props) => <TextInput
-            name="collaborationLink"
-            value={collaborationLink}
-            onChange={(e) => setCollaborationLink(e)}
-            {...props}
-          />}
-          label="Collaboration link"
-        />
-
-        {collaborationLinkAlert.visible && (
-          <Alert tone={collaborationLinkAlert.tone} onClose={() => setCollaborationLinkAlert({ ...collaborationLinkAlert, visible: false })}>
-            {collaborationLinkAlert.message}
-          </Alert>
-        )}
 
         <Alert tone="info">
           Various checks are performed before updating the Kikori database.
@@ -1005,10 +1078,10 @@ export const App = () => {
         <Box background="neutralLow" borderRadius="large" padding="2u">
           <Rows spacing="1.5u">
 
-            <Text size="large" variant="bold">Update Slides of Existing Activity</Text>
-            <Text>Click this button to update the slide links in the selected activity.</Text>
-            <Text>This will NOT create a new activity; this updates the slides of an existing activity.</Text>
-
+            <Text size="large" variant="bold">Add Slides to Selected Activity</Text>
+            <Text>Click to add the open slide deck to the selected activity in the Kikori database.</Text>
+            <Text variant="bold">If the selected activity already has slides, they will be replaced.</Text>
+            <Text>This button will NOT create a new activity. It will update the "slides" field of an existing activity. To create a new age group variation, scroll down.</Text>
             <>
               {updateSlidesInfoAlert.visible && (
                 <Alert tone={updateSlidesInfoAlert.tone}>
@@ -1028,29 +1101,12 @@ export const App = () => {
             <Button
               variant="primary"
               disabled={updateSlidesButton.disabled}
-              onClick={() => { disableAllResultAlerts(); setWaitingForPdfExport(true) }}
+              onClick={handleUpdateSlidesButton}
               loading={updateSlidesButton.loading}
               stretch
             >
               {updateSlidesButton.message}
             </Button>
-
-            {waitingForPdfExport && (<Alert tone="critical">
-              Canva will now generate a static PDF of the slide deck for Kikori. Make sure to select "Flatten PDF" on the next menu to avoid formatting and file size issues.
-
-              Click "Export PDF" to proceed.
-            </Alert>)}
-
-            {waitingForPdfExport && (
-              <Button variant="secondary" onClick={handleExportPDFButton}>
-                Export PDF
-              </Button>
-            )}
-
-            {waitingForPdfExport && (
-              <Button variant="tertiary" onClick={() => setWaitingForPdfExport(false)}>
-                Cancel Update Slides
-              </Button>)}
 
           </Rows>
         </Box>
@@ -1058,17 +1114,18 @@ export const App = () => {
 
 
 
-        {/* Create Variation Box NOT USING FOR NOW
-        {(
+
+
         <Box
           background="neutralLow"
           borderRadius="large"
           padding="2u"
         >
           <Rows spacing="1.5u">
-            <Text size="large" variant="bold">Create New Variation with Slides</Text>
-            <Text>Select age group(s) and click this button to create an age group variation of the activity.</Text>
-            <Text>This WILL create a new activity, for the selected ages, including this slide deck. To update an existing activity, scroll up.</Text>
+            <Text size="large" variant="bold">Add Slides to New Variation</Text>
+            <Text>Select age group(s) and click this button to create an age group variation of the selected activity with this slide deck. This WILL create a new activity.</Text>
+            <Text variant="bold">This button will NOT generate a new slide deck. It will add the currently open slide deck, exactly as is, to a new variation.</Text>
+            <Text>To generate a new age-appropriate slide deck, scroll up to "Generate Slides."</Text>
 
 
             <SegmentedControl
@@ -1094,17 +1151,17 @@ export const App = () => {
             }
             </>
 
-            <Button variant="secondary" onClick={handleCreateVariationButton} disabled={createVariationButton.disabled} stretch>
+            <Button variant="secondary" onClick={handleCreateVariationButton} disabled={createVariationButton.disabled} loading={createVariationButton.loading}>
               {createVariationButton.message}
             </Button>
 
           </Rows>
         </Box>
         <Alert tone="info">Instructions, title, and tags in the new variation will be copied from the original activity.</Alert>
-        
-        */}
 
-      </Rows>
-    </div>
+
+
+      </Rows >
+    </div >
   );
 };
